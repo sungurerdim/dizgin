@@ -1,0 +1,18 @@
+name: void
+version: 1
+updated: "2026-03-23"
+description: "Open-source AI code editor"
+binary: void
+runtime: electron
+ipc: pipe
+config_dirs:
+  - "~/.config/Void"
+  - "~/.config/void"
+env_keys:
+  - OPENAI_API_KEY
+network:
+  hosts:
+    - api.openai.com
+
+env:
+  DO_NOT_TRACK: "1"

@@ -1,0 +1,33 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.go]
+indent_style = tab
+indent_size = 4
+
+[*.{yml,yaml,json,jsonc}]
+indent_style = space
+indent_size = 2
+
+[Makefile]
+indent_style = tab
+
+[*.md]
+indent_style = space
+indent_size = 2
+# Markdown hard line breaks are encoded as two trailing spaces; trimming
+# them breaks list rendering. Leave whitespace untouched in *.md.
+trim_trailing_whitespace = false
+
+[*.{ps1,psm1,psd1}]
+indent_style = space
+indent_size = 4
+
+[*.{sh,bash}]
+indent_style = space
+indent_size = 2

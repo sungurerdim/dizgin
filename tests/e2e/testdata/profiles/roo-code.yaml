@@ -1,0 +1,19 @@
+name: roo-code
+version: 1
+updated: "2026-03-23"
+description: "Multi-agent AI IDE (Roo-Cline)"
+binary: roo-code
+runtime: electron
+ipc: pipe
+config_dirs:
+  - "~/.roo"
+env_keys:
+  - ANTHROPIC_API_KEY
+  - OPENAI_API_KEY
+network:
+  hosts:
+    - api.anthropic.com
+    - api.openai.com
+
+env:
+  DO_NOT_TRACK: "1"

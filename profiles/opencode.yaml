@@ -1,0 +1,27 @@
+name: opencode
+version: 1
+updated: "2026-04-04"
+description: "Open source AI coding agent"
+binary: opencode
+runtime: go
+config_dirs:
+  - "~/.config/opencode"
+  # Note: opencode uses ~/.config/opencode on all platforms (including Windows).
+  # %APPDATA% entries are redundant — the tool does not use AppData.
+env_keys:
+  - ANTHROPIC_API_KEY
+  - OPENAI_API_KEY
+  - GEMINI_API_KEY
+network:
+  hosts:
+    - api.anthropic.com
+    - api.openai.com
+
+# dizgin provides the sandbox — tool can auto-approve operations
+default_args:
+  - "--yolo"
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

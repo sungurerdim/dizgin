@@ -1,0 +1,66 @@
+version: "2"
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - ineffassign
+    - unused
+    - gosec
+    - gocritic
+
+  settings:
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+        # shadow flags idiomatic `if err := f(); err != nil` blocks that
+        # shadow an outer err — benign and pervasive. It is a non-default
+        # vet check; keeping it on produces only noise here.
+        - shadow
+    errcheck:
+      check-type-assertions: true
+    gosec:
+      # Rules excluded because they are inherent to what DIZGIN *is* — a
+      # platform-native sandbox wrapper whose Windows backend is built
+      # almost entirely on Win32 syscalls, whose whole purpose is to
+      # launch user-named tools, and which operates on user-supplied
+      # config / profile / workdir paths by design. Annotating every
+      # site would bury the file in //nolint noise without adding safety.
+      excludes:
+        - G103 # unsafe.Pointer — the syscall backend is built on it
+        - G104 # unhandled errors — already covered by errcheck
+        - G115 # integer conversions — pervasive + controlled in syscall code
+        - G204 # subprocess with variable — launching tools IS the product
+        - G301 # 0755 dir perms — ~/.dizgin config dirs are not secret
+        - G302 # file perms — non-secret config files
+        - G304 # file path from variable — dizgin reads user-named files by design
+        - G306 # 0644 file perms — profiles are not secret
+        - G703 # path traversal taint — same as G304; user paths are the input
+      # Kept active (high value for a credential-handling tool): G101
+      # (hardcoded credentials) and G118 (context-cancel leak). The few
+      # false positives are silenced with targeted //nolint:gosec lines.
+    gocritic:
+      disabled-checks:
+        # exitAfterDefer: dizgin's CLI mirrors the tool's exit code via
+        # os.Exit; the bypassed defers are best-effort cleanup the
+        # process teardown already covers. Intentional, pervasive.
+        - exitAfterDefer
+        # appendAssign: flagged conservatively on freshly-make()d slices
+        # with exact capacity. The one genuine aliasing site was fixed
+        # with an explicit copy.
+        - appendAssign
+
+  exclusions:
+    # Restore the sensible defaults that golangci-lint v1 applied via
+    # issues.exclude-use-default (dropped in the v2 migration): don't
+    # flag unchecked fmt.Fprintf/Fprintln/Write/Close-to-stderr, which
+    # is the dominant errcheck "finding" across the interactive prompt
+    # and diagnostic code. These are deliberate fire-and-forget writes.
+    presets:
+      - std-error-handling
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

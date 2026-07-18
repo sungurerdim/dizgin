@@ -1,0 +1,26 @@
+name: lovable
+version: 1
+updated: "2026-04-04"
+description: "AI web app generator with visual editor"
+binary: lovable
+runtime: nodejs
+config_dirs:
+  - "~/.lovable"
+env_keys:
+  - OPENAI_API_KEY
+  - SUPABASE_URL
+  - SUPABASE_KEY
+network:
+  hosts:
+    - lovable.dev
+    - api.supabase.co
+    - registry.npmjs.org
+
+passthrough:
+  - NODE_HOME
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=nodejs): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

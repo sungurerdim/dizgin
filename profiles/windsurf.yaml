@@ -1,0 +1,24 @@
+name: windsurf
+version: 1
+updated: "2026-04-04"
+description: "Codeium AI-powered code editor"
+binary: windsurf
+runtime: electron
+config_dirs:
+  - "~/.codeium/windsurf"
+  - "%APPDATA%/Windsurf"
+  - "~/Library/Application Support/Windsurf"
+  - "~/.config/Windsurf"
+env_keys:
+  - CODEIUM_API_KEY
+network:
+  hosts:
+    - api.codeium.com
+    - registry.npmjs.org
+    - open-vsx.org
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=electron): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

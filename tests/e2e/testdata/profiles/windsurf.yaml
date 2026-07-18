@@ -1,0 +1,17 @@
+name: windsurf
+version: 1
+updated: "2026-03-23"
+description: "Codeium AI-powered code editor"
+binary: windsurf
+runtime: electron
+ipc: pipe
+config_dirs:
+  - "~/.codeium/windsurf"
+env_keys:
+  - CODEIUM_API_KEY
+network:
+  hosts:
+    - api.codeium.com
+
+env:
+  DO_NOT_TRACK: "1"

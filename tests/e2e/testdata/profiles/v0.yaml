@@ -1,0 +1,19 @@
+name: v0
+version: 1
+updated: "2026-03-23"
+description: "Vercel AI frontend builder"
+binary: v0
+runtime: nodejs
+ipc: socket
+config_dirs:
+  - "~/.v0"
+  - "~/.vercel"
+env_keys:
+  - VERCEL_TOKEN
+network:
+  hosts:
+    - v0.dev
+    - api.vercel.com
+
+env:
+  DO_NOT_TRACK: "1"

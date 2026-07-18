@@ -1,0 +1,20 @@
+name: lovable
+version: 1
+updated: "2026-03-23"
+description: "AI web app generator with visual editor"
+binary: lovable
+runtime: nodejs
+ipc: socket
+config_dirs:
+  - "~/.lovable"
+env_keys:
+  - OPENAI_API_KEY
+  - SUPABASE_URL
+  - SUPABASE_KEY
+network:
+  hosts:
+    - lovable.dev
+    - api.supabase.co
+
+env:
+  DO_NOT_TRACK: "1"

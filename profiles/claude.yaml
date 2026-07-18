@@ -1,0 +1,68 @@
+name: claude
+version: 1
+updated: "2026-04-04"
+description: "Anthropic Claude Code CLI (Bun SEA binary)"
+binary: claude
+runtime: bun
+config_dirs:
+  - "~/.claude.json"  # auth/subscription token (file entry — dizgin stages it read-only)
+  - "~/.claude"
+  - "~/.config/claude"
+  - "~/.local/bin"
+  # Note: %APPDATA%/Claude is the Electron desktop app cache (1800+ files).
+  # CLI tool uses ~/.claude/ instead. Only mount if desktop app integration needed.
+  - "%APPDATA%/.claude-code"
+  - "%LOCALAPPDATA%/.claude-code-cache"
+  - "~/Library/Application Support/Claude"
+
+# Note: ~/.bun is NOT mounted — Bun SEA binary includes its own runtime.
+# Mounting ~/.bun would cause icacls to grant on thousands of cache files.
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=bun): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true
+env_keys:
+  - ANTHROPIC_API_KEY
+  - ANTHROPIC_BASE_URL
+  - CLAUDE_CODE_USE_BEDROCK
+  - CLAUDE_CONFIG_DIR
+  - CLAUDE_MODEL
+network:
+  hosts:
+    - api.anthropic.com
+    - updates.anthropic.com
+    - registry.npmjs.org       # npx-based MCP server installation
+
+# dizgin provides the sandbox — tool can skip its own permission checks
+default_args:
+  - "--dangerously-skip-permissions"
+
+# Forward these env vars from host into the container if set.
+# CLAUDE_CODE_GIT_BASH_PATH: user may have a custom Git installation path.
+# Use passthrough so the actual host value is used instead of a hardcoded default.
+passthrough:
+  - CLAUDE_CODE_GIT_BASH_PATH
+
+# Telemetry off, auto-updater off (dizgin handles updates), perf tweaks
+# DO_NOT_TRACK, CHOKIDAR_USEPOLLING, WATCHPACK_POLLING are applied by default (see defaults.go)
+env:
+  DISABLE_TELEMETRY: "1"
+  DISABLE_ERROR_REPORTING: "1"
+  DISABLE_AUTOUPDATER: "1"
+  DISABLE_FEEDBACK_COMMAND: "1"
+  DISABLE_INSTALLATION_CHECKS: "1"
+  CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY: "1"
+  # CLAUDE_CODE_GIT_BASH_PATH is intentionally NOT set here. The host
+  # Git-for-Windows install (mounted via DefaultToolDeps → %ProgramFiles%/Git)
+  # provides bash inside the container; a user-exported value on the host
+  # is forwarded via the passthrough entry above. Without either, Claude
+  # Code falls back to discovering bash from PATH.
+  # MSYS/MSYS2 runtime knobs that stop bash from trying to allocate a pseudo-console
+  # inside the container (ConPTY already owns the TTY) and from rewriting PATH in a
+  # way that drops Windows-native binaries. Without these, bash -lc emits exit 57 on
+  # first subprocess spawn ("cannot exec /usr/bin/...").
+  MSYS: "disable_pcon"
+  MSYS2_PATH_TYPE: "inherit"
+  CHERE_INVOKING: "1"

@@ -1,0 +1,33 @@
+name: aide
+version: 1
+updated: "2026-04-04"
+description: "AI-native code editor (VS Code fork by CodeStory)"
+binary: aide
+runtime: electron
+config_dirs:
+  - "~/.aide"
+  - "%APPDATA%/Aide"
+  - "~/Library/Application Support/Aide"
+  - "~/.config/Aide"
+
+lib_deps:                                      # R/O: static extension bundles
+  - "~/.aide/extensions"
+
+env_keys:
+  - ANTHROPIC_API_KEY
+  - OPENAI_API_KEY
+  - AIDE_API_KEY
+network:
+  hosts:
+    - aide.dev
+    - api.aide.dev
+    - api.anthropic.com
+    - api.openai.com
+    - registry.npmjs.org                       # npx-based MCP server installation
+    - open-vsx.org                             # VS Code extension marketplace (Aide uses Open VSX)
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=electron): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

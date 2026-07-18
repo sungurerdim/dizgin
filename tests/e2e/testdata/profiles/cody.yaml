@@ -1,0 +1,20 @@
+name: cody
+version: 2
+updated: "2026-03-26"
+description: "Sourcegraph AI coding assistant"
+binary: cody-agent
+runtime: nodejs
+ipc: stdio
+config_dirs:
+  - "~/.sourcegraph"
+env_keys:
+  - SRC_ACCESS_TOKEN
+  - SRC_ENDPOINT
+network:
+  hosts:
+    - sourcegraph.com
+
+# Telemetry off (Sourcegraph user-agent telemetry)
+env:
+  SRC_DISABLE_USER_AGENT_TELEMETRY: "1"
+  DO_NOT_TRACK: "1"

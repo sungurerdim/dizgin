@@ -1,0 +1,44 @@
+name: claude
+version: 3
+updated: "2026-03-27"
+description: "Anthropic Claude Code CLI (Bun SEA binary)"
+binary: claude
+runtime: bun
+ipc: stdio
+config_dirs:
+  - "~/.claude"
+  - "~/.claude.json"
+  - "~/.config/claude"
+  - "~/.local/bin"
+  # Note: %APPDATA%/Claude is the Electron desktop app cache (1800+ files).
+  # CLI tool uses ~/.claude/ instead. Only mount if desktop app integration needed.
+  - "%APPDATA%/.claude-code"
+  - "%LOCALAPPDATA%/.claude"
+  - "%LOCALAPPDATA%/.claude-code-cache"
+  - "~/Library/Application Support/Claude"
+# Note: ~/.bun is NOT mounted — Bun SEA binary includes its own runtime.
+# Mounting ~/.bun would cause icacls to grant on thousands of cache files.
+env_keys:
+  - ANTHROPIC_API_KEY
+  - ANTHROPIC_BASE_URL
+  - CLAUDE_CODE_USE_BEDROCK
+  - CLAUDE_CONFIG_DIR
+  - CLAUDE_MODEL
+network:
+  hosts:
+    - api.anthropic.com
+    - updates.anthropic.com
+
+# dizgin provides the sandbox — tool can skip its own permission checks
+default_args:
+  - "--dangerously-skip-permissions"
+
+# Telemetry off, auto-updater off (dizgin handles updates), perf tweaks
+env:
+  DISABLE_TELEMETRY: "1"
+  DISABLE_ERROR_REPORTING: "1"
+  DISABLE_AUTOUPDATER: "1"
+  DISABLE_FEEDBACK_COMMAND: "1"
+  DISABLE_INSTALLATION_CHECKS: "1"
+  CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY: "1"
+  DO_NOT_TRACK: "1"

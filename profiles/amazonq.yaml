@@ -1,0 +1,33 @@
+name: amazonq
+version: 1
+updated: "2026-04-04"
+description: "AWS AI coding assistant (Kiro)"
+binary: q
+runtime: nodejs
+config_dirs:
+  - "~/.kiro"
+  - "~/.aws/amazonq"
+  # Note: ~/.kiro includes settings/ + agents/ via DACL inheritance.
+  # %USERPROFILE%/.kiro is redundant — ~ expands to %USERPROFILE% on Windows.
+env_keys:
+  - AWS_PROFILE
+  - AWS_REGION
+  - KIRO_API_KEY
+  - KIRO_LOG_LEVEL
+network:
+  hosts:
+    - q.us-east-1.amazonaws.com
+    - registry.npmjs.org
+
+passthrough:
+  - NODE_HOME
+
+# dizgin provides the sandbox — trust all tools
+default_args:
+  - "--trust-all-tools"
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=nodejs): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

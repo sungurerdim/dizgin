@@ -1,0 +1,27 @@
+name: codex
+version: 3
+updated: "2026-03-27"
+description: "OpenAI Codex CLI"
+binary: codex
+runtime: rust
+ipc: stdio
+config_dirs:
+  - "~/.codex"
+  - "~/.codex/cache"
+  - "~/.codex/logs"
+  - "%USERPROFILE%/.codex"
+env_keys:
+  - OPENAI_API_KEY
+  - OPENAI_BASE_URL
+  - CODEX_HOME
+  - CODEX_API_BASE
+network:
+  hosts:
+    - api.openai.com
+
+# dizgin provides the sandbox — tool can bypass its own approval/sandbox
+default_args:
+  - "--dangerously-bypass-approvals-and-sandbox"
+
+env:
+  DO_NOT_TRACK: "1"

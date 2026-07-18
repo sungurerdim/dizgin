@@ -1,0 +1,29 @@
+name: plandex
+version: 1
+updated: "2026-04-04"
+description: "Open-source AI coding agent for large projects"
+binary: plandex
+runtime: go
+config_dirs:
+  - "~/.plandex"
+env_keys:
+  - OPENROUTER_API_KEY
+  - OPENAI_API_KEY
+  - ANTHROPIC_API_KEY
+  - PLANDEX_API_HOST
+  - PLANDEX_BASE_DIR
+  - PLANDEX_SKIP_UPGRADE
+network:
+  hosts:
+    - api.plandex.ai
+    - openrouter.ai
+
+# dizgin provides the sandbox — full autonomy mode + skip change review menu
+default_args:
+  - "--full"
+  - "--skip-menu"
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

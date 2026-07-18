@@ -1,0 +1,38 @@
+name: continue
+version: 3
+updated: "2026-03-27"
+description: "Open-source coding assistant (VS Code/JetBrains)"
+binary: cn
+runtime: nodejs
+ipc: stdio
+config_dirs:
+  - "~/.continue"
+  - "~/.continue/config.yaml"
+  - "~/.continue/permissions.yaml"
+  - "%USERPROFILE%/.continue"
+env_keys:
+  - OPENAI_API_KEY
+  - ANTHROPIC_API_KEY
+  - MISTRAL_API_KEY
+  - CONTINUE_API_KEY
+  - CONTINUE_CONFIG_DIR
+  - CONTINUE_LOG_LEVEL
+network:
+  hosts:
+    - api.openai.com
+    - api.anthropic.com
+    - missioncontrol.continue.dev
+
+# dizgin provides the sandbox — auto-approve all tool operations
+default_args:
+  - "--allow"
+  - "Write()"
+  - "--allow"
+  - "Bash()"
+  - "--allow"
+  - "Read()"
+
+# Telemetry off
+env:
+  CONTINUE_TELEMETRY_ENABLED: "0"
+  DO_NOT_TRACK: "1"

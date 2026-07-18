@@ -1,0 +1,26 @@
+name: roo-code
+version: 1
+updated: "2026-04-04"
+description: "Multi-agent AI IDE (Roo-Cline)"
+binary: roo-code
+runtime: electron
+config_dirs:
+  - "~/.roo"
+  - "%APPDATA%/Roo-Code"
+  - "~/Library/Application Support/Roo-Code"
+  - "~/.config/Roo-Code"
+env_keys:
+  - ANTHROPIC_API_KEY
+  - OPENAI_API_KEY
+network:
+  hosts:
+    - api.anthropic.com
+    - api.openai.com
+    - registry.npmjs.org
+    - open-vsx.org
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=electron): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

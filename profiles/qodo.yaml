@@ -1,0 +1,21 @@
+name: qodo
+version: 1
+updated: "2026-04-04"
+description: "AI code review and test generation (CodiumAI)"
+binary: qodo
+runtime: python
+config_dirs:
+  - "~/.codiumai.toml"
+  - "~/.qodo"
+env_keys:
+  - OPENAI_API_KEY
+  - QODO_TOKEN
+network:
+  hosts:
+    - api.qodo.ai
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=python): %LOCALAPPDATA%/Programs/Python, %PYTHON_HOME%
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

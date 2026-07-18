@@ -1,0 +1,25 @@
+name: v0
+version: 1
+updated: "2026-04-04"
+description: "Vercel AI frontend builder"
+binary: v0
+runtime: nodejs
+config_dirs:
+  - "~/.v0"
+  - "~/.vercel"
+env_keys:
+  - VERCEL_TOKEN
+network:
+  hosts:
+    - v0.dev
+    - api.vercel.com
+    - registry.npmjs.org
+
+passthrough:
+  - NODE_HOME
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=nodejs): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

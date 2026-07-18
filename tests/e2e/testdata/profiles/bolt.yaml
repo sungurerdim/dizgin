@@ -1,0 +1,20 @@
+name: bolt
+version: 1
+updated: "2026-03-23"
+description: "AI full-stack web app builder (StackBlitz)"
+binary: bolt
+runtime: nodejs
+ipc: socket
+config_dirs:
+  - "~/.bolt"
+env_keys:
+  - ANTHROPIC_API_KEY
+  - OPENAI_API_KEY
+network:
+  hosts:
+    - api.anthropic.com
+    - api.openai.com
+    - stackblitz.com
+
+env:
+  DO_NOT_TRACK: "1"

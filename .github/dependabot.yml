@@ -1,0 +1,18 @@
+# github-actions ecosystem removed: the .github/workflows/ pipelines
+# (ci/codeql/release) were deleted under the no-CI policy (see
+# CLAUDE.md "## CI/CD") — there are no workflow files left to update.
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      go-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"

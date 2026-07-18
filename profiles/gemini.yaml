@@ -1,0 +1,39 @@
+name: gemini
+version: 1
+updated: "2026-04-04"
+description: "Google Gemini CLI"
+binary: gemini
+runtime: nodejs
+config_dirs:
+  - "~/.gemini"
+  - "~/.cache/gemini-cli"
+  - "~/Library/Caches/gemini-cli"
+  - "%APPDATA%/gemini-cli"
+  - "%APPDATA%/gemini-cli/cache"
+env_keys:
+  - GEMINI_API_KEY
+  - GOOGLE_API_KEY
+  - GOOGLE_CLOUD_PROJECT
+  - GCLOUD_PROJECT_ID
+  - GCLOUD_REGION
+network:
+  hosts:
+    - generativelanguage.googleapis.com
+    - registry.npmjs.org
+
+# dizgin provides the sandbox — tool can auto-approve operations
+default_args:
+  - "--yolo"
+
+passthrough:
+  - NODE_HOME
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=nodejs): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true
+
+# DO_NOT_TRACK is applied by default
+env:
+  GEMINI_TELEMETRY_ENABLED: "false"

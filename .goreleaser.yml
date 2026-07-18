@@ -1,0 +1,180 @@
+version: 2
+
+project_name: dizgin
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: dizgin
+    binary: "{{ .ProjectName }}"
+    main: ./cmd/dizgin
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    flags:
+      - -trimpath
+      - -buildvcs=true
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.CommitDate}}
+    # Reproducible builds (Phase 1 plan, item D2). Commit timestamp
+    # replaces wall-clock so two release runs of the same tag from
+    # different runners produce byte-identical archives.
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+  - id: dizgind
+    binary: "{{ .ProjectName }}d"
+    main: ./cmd/dizgind
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    flags:
+      - -trimpath
+      - -buildvcs=true
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.CommitDate}}
+    # Reproducible builds (Phase 1 plan, item D2). Commit timestamp
+    # replaces wall-clock so two release runs of the same tag from
+    # different runners produce byte-identical archives.
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+archives:
+  - id: default
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+      - docs/CONFIG.md
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+# SBOM generation (Phase 1 plan, item B1). Syft attaches an
+# SPDX-JSON inventory to every release archive so downstream
+# consumers can audit the dependency tree + license posture without
+# unpacking the binary.
+sboms:
+  - id: archive-sbom
+    artifacts: archive
+    documents:
+      - "${artifact}.sbom.spdx.json"
+
+# Artifact signing is intentionally not configured: cosign keyless
+# signing requires the GitHub Actions OIDC token, which is unavailable
+# for a manual `goreleaser release` (the repo follows a no-CI policy).
+# Re-add a signs: block (cosign keyless under CI, or GPG with a local
+# key for manual releases) when a signing strategy is chosen.
+
+brews:
+  - name: "{{ .ProjectName }}"
+    # skip_upload until the homebrew-dizgin tap repo + HOMEBREW_TAP_TOKEN
+    # secret exist and `owner` is confirmed (see ds-ship human actions).
+    # GoReleaser still builds the formula as an artifact; it just does
+    # not push to the tap. Flip to 'false' once the tap is provisioned.
+    skip_upload: 'true'
+    repository:
+      owner: sungurerdim
+      name: homebrew-dizgin
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    commit_author:
+      name: dizgin-bot
+      email: bot@dizgin.io
+    homepage: "https://github.com/sungurerdim/dizgin"
+    description: "Platform-native sandbox wrapper for AI coding tools"
+    license: "MIT"
+    install: |
+      bin.install "dizgin"
+      bin.install "dizgind"
+    test: |
+      system "#{bin}/dizgin", "version"
+
+scoops:
+  - # skip_upload until the scoop-dizgin bucket repo + SCOOP_BUCKET_TOKEN
+    # secret exist and `owner` is confirmed (see ds-ship human actions).
+    skip_upload: 'true'
+    repository:
+      owner: sungurerdim
+      name: scoop-dizgin
+      token: "{{ .Env.SCOOP_BUCKET_TOKEN }}"
+    commit_author:
+      name: dizgin-bot
+      email: bot@dizgin.io
+    homepage: "https://github.com/sungurerdim/dizgin"
+    description: "Platform-native sandbox wrapper for AI coding tools"
+    license: "MIT"
+
+nfpms:
+  - id: packages
+    package_name: dizgin
+    homepage: "https://github.com/sungurerdim/dizgin"
+    description: "Platform-native sandbox wrapper and orchestration daemon for AI coding tools"
+    maintainer: "dizgin <noreply@dizgin.io>"
+    license: "MIT"
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/local/bin
+    contents:
+      - src: README.md
+        dst: /usr/share/doc/dizgin/README.md
+      - src: LICENSE
+        dst: /usr/share/doc/dizgin/LICENSE
+
+snapshot:
+  version_template: "0.0.0-SNAPSHOT-{{ .Now.Format \"20060102\" }}"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+  groups:
+    - title: "New Features"
+      regexp: "^feat"
+    - title: "Bug Fixes"
+      regexp: "^fix"
+    - title: "Other"
+      regexp: ".*"
+
+release:
+  github:
+    owner: sungurerdim
+    name: dizgin
+  name_template: "v{{.Version}}"
+  draft: false
+  prerelease: auto

@@ -1,0 +1,30 @@
+name: cursor
+version: 3
+updated: "2026-03-27"
+description: "AI-powered code editor (VS Code fork)"
+binary: cursor
+runtime: electron
+ipc: pipe
+config_dirs:
+  - "~/.cursor"
+  - "~/.cursor-global"
+  - "%APPDATA%/.cursor"
+  - "%APPDATA%/.cursor-global"
+  - "~/Library/Application Support/Cursor"
+  - "~/.config/Cursor"
+runtime_dirs:
+  - "~/.cursor/extensions"
+  - "~/.cursor/Cache"
+env_keys:
+  - OPENAI_API_KEY
+  - ANTHROPIC_API_KEY
+  - CURSOR_API_KEY
+network:
+  hosts:
+    - api.cursor.sh
+    - api.cursor.com
+    - api.anthropic.com
+    - api.openai.com
+
+env:
+  DO_NOT_TRACK: "1"

@@ -1,0 +1,31 @@
+name: gemini
+version: 3
+updated: "2026-03-27"
+description: "Google Gemini CLI"
+binary: gemini
+runtime: nodejs
+ipc: stdio
+config_dirs:
+  - "~/.gemini"
+  - "~/.cache/gemini-cli"
+  - "~/Library/Caches/gemini-cli"
+  - "%APPDATA%/gemini-cli"
+  - "%APPDATA%/gemini-cli/cache"
+env_keys:
+  - GEMINI_API_KEY
+  - GOOGLE_API_KEY
+  - GOOGLE_CLOUD_PROJECT
+  - GCLOUD_PROJECT_ID
+  - GCLOUD_REGION
+network:
+  hosts:
+    - generativelanguage.googleapis.com
+
+# dizgin provides the sandbox — tool can auto-approve operations
+default_args:
+  - "--yolo"
+
+# Telemetry off
+env:
+  GEMINI_TELEMETRY_ENABLED: "false"
+  DO_NOT_TRACK: "1"

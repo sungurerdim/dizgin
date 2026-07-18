@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest a new capability or an enhancement to an existing one.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Use case
+      description: |
+        Describe the workflow this feature would enable. Concrete
+        examples are far more useful than abstract descriptions.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed solution
+      description: How should the feature work? Mock-up CLI / config / API is welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about and why you ruled them out.
+
+  - type: dropdown
+    id: redline
+    attributes:
+      label: Red line impact
+      description: |
+        DIZGIN has two non-negotiable red lines:
+          R1 — Full filesystem isolation
+          R2 — Native experience for the wrapped tool
+        Does this feature affect either?
+      options:
+        - No impact on R1 or R2
+        - Affects R1 (filesystem isolation) — explain below
+        - Affects R2 (native UX) — explain below
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context

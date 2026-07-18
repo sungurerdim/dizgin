@@ -1,0 +1,26 @@
+name: plandex
+version: 2
+updated: "2026-03-26"
+description: "Open-source AI coding agent for large projects"
+binary: plandex
+runtime: go
+ipc: socket
+config_dirs:
+  - "~/.plandex"
+env_keys:
+  - OPENROUTER_API_KEY
+  - OPENAI_API_KEY
+  - ANTHROPIC_API_KEY
+  - PLANDEX_API_HOST
+network:
+  hosts:
+    - api.plandex.ai
+    - openrouter.ai
+
+# dizgin provides the sandbox — full autonomy mode + skip change review menu
+default_args:
+  - "--full"
+  - "--skip-menu"
+
+env:
+  DO_NOT_TRACK: "1"

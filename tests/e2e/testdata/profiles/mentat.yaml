@@ -1,0 +1,23 @@
+name: mentat
+version: 2
+updated: "2026-03-26"
+description: "AI pair programming TUI"
+binary: mentat
+runtime: python
+ipc: stdio
+config_dirs:
+  - "~/.mentat"
+env_keys:
+  - OPENAI_API_KEY
+  - AZURE_OPENAI_ENDPOINT
+  - AZURE_OPENAI_KEY
+network:
+  hosts:
+    - api.openai.com
+
+# Auto-context for faster startup
+default_args:
+  - "--auto-context"
+
+env:
+  DO_NOT_TRACK: "1"

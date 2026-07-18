@@ -1,0 +1,4 @@
+# GitHub Sponsors button on the repo.
+# Activates only after sponsorship is set up at github.com/sponsors/sungurerdim.
+# Until then this file is a no-op — the Sponsor button stays hidden.
+github: [sungurerdim]

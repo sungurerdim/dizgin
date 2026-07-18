@@ -1,0 +1,22 @@
+name: swe-agent
+version: 2
+updated: "2026-03-26"
+description: "Automated software engineering agent"
+binary: sweagent
+runtime: python
+ipc: stdio
+config_dirs:
+  - "~/.swe-agent"
+env_keys:
+  - OPENAI_API_KEY
+  - ANTHROPIC_API_KEY
+  - GITHUB_TOKEN
+network:
+  hosts:
+    - api.openai.com
+    - api.anthropic.com
+    - api.github.com
+
+# No documented auto-approve or telemetry flags for SWE-agent
+env:
+  DO_NOT_TRACK: "1"

@@ -1,0 +1,27 @@
+name: sweep
+version: 1
+updated: "2026-04-04"
+description: "GitHub-native AI code fixing bot"
+binary: sweep
+runtime: python
+config_dirs:
+  - "~/.sweep"
+env_keys:
+  - OPENAI_API_KEY
+  - ANTHROPIC_API_KEY
+  - GITHUB_TOKEN
+network:
+  hosts:
+    - api.github.com
+    - api.openai.com
+
+passthrough:
+  - PYTHON_HOME
+  - VIRTUAL_ENV
+  - PYTHONPATH
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=python): %LOCALAPPDATA%/Programs/Python, %PYTHON_HOME%
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

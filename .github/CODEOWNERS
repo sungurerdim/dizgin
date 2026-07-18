@@ -1,0 +1,5 @@
+# Default reviewer for the entire repository.
+# Single-maintainer mode — once additional maintainers join, this file
+# will fan out by directory (cmd/, internal/, docs/, .github/, …).
+
+* @sungurerdim

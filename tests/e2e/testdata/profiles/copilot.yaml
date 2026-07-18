@@ -1,0 +1,28 @@
+name: copilot
+version: 3
+updated: "2026-03-27"
+description: "GitHub Copilot CLI"
+binary: copilot
+runtime: nodejs
+ipc: pipe
+config_dirs:
+  - "~/.copilot"
+  - "~/.gh-copilot"
+  - "~/.local/share/gh/extensions"
+  - "%APPDATA%/GitHub Copilot"
+env_keys:
+  - GH_TOKEN
+  - GITHUB_TOKEN
+  - COPILOT_HOME
+network:
+  hosts:
+    - api.github.com
+    - github.com
+    - copilot-proxy.githubusercontent.com
+
+# dizgin provides the sandbox — tool can auto-approve operations
+default_args:
+  - "--allow-all"
+
+env:
+  DO_NOT_TRACK: "1"

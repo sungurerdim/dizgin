@@ -1,0 +1,20 @@
+name: qodo
+version: 2
+updated: "2026-03-26"
+description: "AI code review and test generation (CodiumAI)"
+binary: qodo
+runtime: python
+ipc: stdio
+config_dirs:
+  - "~/.codiumai.toml"
+  - "~/.qodo"
+env_keys:
+  - OPENAI_API_KEY
+  - QODO_TOKEN
+network:
+  hosts:
+    - api.qodo.ai
+
+# No documented CLI auto-approve or telemetry env vars
+env:
+  DO_NOT_TRACK: "1"

@@ -1,0 +1,30 @@
+name: swe-agent
+version: 1
+updated: "2026-04-04"
+description: "Automated software engineering agent"
+binary: sweagent
+runtime: python
+config_dirs:
+  - "~/.swe-agent"
+env_keys:
+  - OPENAI_API_KEY
+  - ANTHROPIC_API_KEY
+  - GITHUB_TOKEN
+  - SWE_AGENT_CONFIG_DIR
+  - SWE_AGENT_LOG_STREAM_LEVEL
+network:
+  hosts:
+    - api.openai.com
+    - api.anthropic.com
+    - api.github.com
+
+passthrough:
+  - PYTHON_HOME
+  - VIRTUAL_ENV
+  - PYTHONPATH
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=python): %LOCALAPPDATA%/Programs/Python, %PYTHON_HOME%
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

@@ -1,0 +1,28 @@
+name: cody
+version: 1
+updated: "2026-04-04"
+description: "Sourcegraph AI coding assistant"
+binary: cody-agent
+runtime: nodejs
+config_dirs:
+  - "~/.sourcegraph"
+env_keys:
+  - SRC_ACCESS_TOKEN
+  - SRC_ENDPOINT
+  - CODY_AGENT_TRACE_PATH
+network:
+  hosts:
+    - sourcegraph.com
+
+passthrough:
+  - NODE_HOME
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=nodejs): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true
+
+# DO_NOT_TRACK is applied by default
+env:
+  SRC_DISABLE_USER_AGENT_TELEMETRY: "1"

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<!--
+  Scheduled Task definition for the dizgin dizgind daemon prewarm
+  (Phase 1 plan, item A6).
+
+  Triggered at any user logon. Runs dizgind.exe so the named pipe
+  endpoint is ready before the user invokes dizgin, dropping first-call
+  latency from ~200ms (autostart) to ~5ms (already-running).
+
+  Registered + unregistered by the MSI custom actions in dizgin.wxs.
+
+  To install manually for development:
+    schtasks /Create /TN "dizgin-dizgind-prewarm" /XML windows/dizgind-prewarm.xml /F
+
+  To remove:
+    schtasks /Delete /TN "dizgin-dizgind-prewarm" /F
+-->
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Pre-warm the dizgin dizgind daemon at user logon so the first dizgin call is sub-second.</Description>
+    <URI>\dizgin\dizgind-prewarm</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <GroupId>S-1-5-32-545</GroupId>  <!-- Builtin\Users -->
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>7</Priority>
+    <RestartOnFailure>
+      <Interval>PT1M</Interval>
+      <Count>3</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>"%ProgramFiles%\dizgin\dizgind.exe"</Command>
+      <Arguments>start --background</Arguments>
+      <WorkingDirectory>%ProgramFiles%\dizgin</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>

@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sungurerdim/dizgin/schema/dizgin.schema.json",
+  "$ref": "#/$defs/Config",
+  "$defs": {
+    "AuditConfig": {
+      "properties": {
+        "enabled": { "type": "boolean", "default": false, "description": "Enable JSON-L audit logging." },
+        "max_size_mb": { "type": "integer", "default": 0, "description": "Max audit log size in MiB before rotation. 0 = unlimited." }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Config": {
+      "properties": {
+        "version": { "type": "integer", "description": "Config file version. Must be 1." },
+        "tool": { "type": "string", "description": "AI tool binary name (optional)." },
+        "workdir": { "type": "string", "description": "Working directory override." },
+        "filesystem": { "$ref": "#/$defs/FilesystemConfig" },
+        "network": { "$ref": "#/$defs/NetworkConfig" },
+        "security": { "$ref": "#/$defs/SecurityConfig" },
+        "resources": { "$ref": "#/$defs/ResourceConfig" },
+        "privileges": { "$ref": "#/$defs/PrivilegeConfig" },
+        "credential": { "$ref": "#/$defs/CredentialConfig" },
+        "monitor": { "$ref": "#/$defs/MonitorConfig" },
+        "audit": { "$ref": "#/$defs/AuditConfig" },
+        "tools": {
+          "additionalProperties": { "$ref": "#/$defs/ToolDef" },
+          "type": "object",
+          "description": "Inline tool profile overrides."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "CredentialConfig": {
+      "properties": {
+        "ssh_agent": { "type": "boolean", "default": true, "description": "Forward host SSH agent socket." },
+        "api_keys": { "items": { "type": "string" }, "type": "array", "description": "Extra environment variables to inject." },
+        "git_identity": { "type": "boolean", "default": true, "description": "Inject git user.name/email." },
+        "github_token": { "type": "boolean", "default": true, "description": "Resolve and inject GITHUB_TOKEN." },
+        "providers": { "items": { "type": "string" }, "type": "array", "description": "Credential providers (auto-detect if empty)." },
+        "vault_mount": { "type": "string", "description": "HashiCorp Vault mount." },
+        "vault_path": { "type": "string", "description": "HashiCorp Vault secret path." }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "FilesystemConfig": {
+      "properties": {
+        "read_write": { "items": { "type": "string" }, "type": "array", "description": "Additional R/W mount paths." },
+        "read_only": { "items": { "type": "string" }, "type": "array", "description": "Additional R/O mount paths." },
+        "tmp_size": { "type": "string", "description": "Temp directory size (e.g. '256m')." },
+        "zero_residue": { "type": "boolean", "default": false, "description": "Zero-fill temp files on exit." }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "MonitorConfig": {
+      "properties": {
+        "level": { "type": "string", "enum": ["basic", "detailed", "full"], "default": "basic", "description": "Metrics collection depth." },
+        "interval": { "type": "string", "default": "10s", "description": "Collection interval (Go duration)." }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "NetworkConfig": {
+      "properties": {
+        "policy": { "type": "string", "enum": ["open", "allowlist", "blocked"], "default": "open", "description": "Outbound network policy." },
+        "allowlist": { "items": { "type": "string" }, "type": "array", "description": "Allowed hosts (when policy=allowlist)." }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "PrivilegeConfig": {
+      "properties": {
+        "run_as_user": { "type": "string", "description": "User to run sandboxed process as." }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ResourceConfig": {
+      "properties": {
+        "memory_mb": { "type": "integer", "default": 0, "description": "Max memory in MiB. 0 = unlimited." },
+        "cpu_percent": { "type": "integer", "default": 0, "description": "CPU cap (1-100). 0 = unlimited." },
+        "max_pids": { "type": "integer", "default": 0, "description": "Max processes. 0 = unlimited." },
+        "timeout": { "type": "string", "default": "0", "description": "Session timeout (Go duration, e.g. '2h'). 0 = none." }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "SecurityConfig": {
+      "properties": {
+        "no_new_privileges": { "type": "boolean", "default": true, "description": "Prevent gaining new privileges." },
+        "drop_all_caps": { "type": "boolean", "default": true, "description": "Drop all Linux capabilities." }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ToolDef": {
+      "properties": {
+        "config_dirs": { "items": { "type": "string" }, "type": "array", "description": "Config directories to mount R/W." },
+        "runtime_dirs": { "items": { "type": "string" }, "type": "array", "description": "Runtime directories to mount R/O." },
+        "env_keys": { "items": { "type": "string" }, "type": "array", "description": "Environment variables to discover and inject." },
+        "default_args": { "items": { "type": "string" }, "type": "array", "description": "Arguments injected before user args." },
+        "env": { "additionalProperties": { "type": "string" }, "type": "object", "description": "Static environment variables to set." },
+        "runtime": { "type": "string", "description": "Runtime type (nodejs, bun, python, go, etc.)." }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  },
+  "title": "dizgin Configuration",
+  "description": "Configuration schema for dizgin.yaml — platform-native sandbox wrapper for AI coding tools. Add '# yaml-language-server: $schema=https://raw.githubusercontent.com/sungurerdim/dizgin/main/schema/dizgin.schema.json' to the top of your dizgin.yaml for IDE autocomplete."
+}

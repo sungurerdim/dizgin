@@ -1,0 +1,34 @@
+name: copilot
+version: 1
+updated: "2026-04-04"
+description: "GitHub Copilot CLI"
+binary: copilot
+runtime: nodejs
+config_dirs:
+  - "~/.copilot"
+  - "~/.gh-copilot"
+  - "~/.local/share/gh/extensions"
+  - "%APPDATA%/GitHub Copilot"
+env_keys:
+  - GH_TOKEN
+  - GITHUB_TOKEN
+  - COPILOT_HOME
+network:
+  hosts:
+    - api.github.com
+    - github.com
+    - copilot-proxy.githubusercontent.com
+    - registry.npmjs.org
+
+passthrough:
+  - NODE_HOME
+
+# dizgin provides the sandbox — tool can auto-approve operations
+default_args:
+  - "--allow-all"
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=nodejs): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

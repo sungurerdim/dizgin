@@ -1,0 +1,23 @@
+name: opencode
+version: 2
+updated: "2026-03-26"
+description: "Open source AI coding agent"
+binary: opencode
+runtime: go
+ipc: stdio
+config_dirs:
+  - "~/.config/opencode"
+  - "%APPDATA%/opencode"
+  - "%LOCALAPPDATA%/opencode"
+env_keys:
+  - ANTHROPIC_API_KEY
+  - OPENAI_API_KEY
+  - GEMINI_API_KEY
+network:
+  hosts:
+    - api.anthropic.com
+    - api.openai.com
+
+# dizgin provides the sandbox — tool can auto-approve operations
+default_args:
+  - "--yolo"

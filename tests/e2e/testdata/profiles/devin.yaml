@@ -1,0 +1,17 @@
+name: devin
+version: 1
+updated: "2026-03-23"
+description: "Autonomous AI software engineer (Cognition)"
+binary: devin
+runtime: nodejs
+ipc: stdio
+config_dirs:
+  - "~/.devin"
+env_keys:
+  - DEVIN_API_KEY
+network:
+  hosts:
+    - api.devin.ai
+
+env:
+  DO_NOT_TRACK: "1"

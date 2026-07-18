@@ -1,0 +1,30 @@
+name: codex
+version: 1
+updated: "2026-04-04"
+description: "OpenAI Codex CLI"
+binary: codex
+runtime: rust
+config_dirs:
+  - "~/.codex"
+  # Note: ~/.codex includes cache/ + logs/ via DACL inheritance.
+  # %USERPROFILE%/.codex is redundant — ~ expands to %USERPROFILE% on Windows.
+env_keys:
+  - OPENAI_API_KEY
+  - OPENAI_BASE_URL
+  - CODEX_HOME
+  - CODEX_API_BASE
+network:
+  hosts:
+    - api.openai.com
+
+# dizgin provides the sandbox — tool can bypass its own approval/sandbox
+default_args:
+  - "--dangerously-bypass-approvals-and-sandbox"
+
+mcp_dirs:
+  - "~/.codex/mcp"
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

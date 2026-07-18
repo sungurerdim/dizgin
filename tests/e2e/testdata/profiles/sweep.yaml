@@ -1,0 +1,19 @@
+name: sweep
+version: 1
+updated: "2026-03-23"
+description: "GitHub-native AI code fixing bot"
+binary: sweep
+runtime: python
+ipc: stdio
+config_dirs:
+  - "~/.sweep"
+env_keys:
+  - OPENAI_API_KEY
+  - GITHUB_TOKEN
+network:
+  hosts:
+    - api.github.com
+    - api.openai.com
+
+env:
+  DO_NOT_TRACK: "1"

@@ -1,0 +1,39 @@
+name: cursor
+version: 1
+updated: "2026-04-04"
+description: "AI-powered code editor (VS Code fork)"
+binary: cursor
+runtime: electron
+config_dirs:
+  - "~/.cursor"
+  - "~/.cursor-global"
+  - "%APPDATA%/.cursor"
+  - "%APPDATA%/.cursor-global"
+  - "~/Library/Application Support/Cursor"
+  - "~/.config/Cursor"
+  - "~/.cursor/Cache"                         # R/W: cursor writes to Cache during session
+
+lib_deps:                                      # R/O: static extension bundles
+  - "~/.cursor/extensions"
+
+mcp_dirs:                                      # R/W: Cursor-specific MCP server configs
+  - "~/.cursor/mcp"
+
+env_keys:
+  - OPENAI_API_KEY
+  - ANTHROPIC_API_KEY
+  - CURSOR_API_KEY
+network:
+  hosts:
+    - api.cursor.sh
+    - api.cursor.com
+    - api.anthropic.com
+    - api.openai.com
+    - registry.npmjs.org                       # npx-based MCP server installation
+    - marketplace.visualstudio.com             # VS Code extension marketplace
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp (+ ~/.cursor/mcp above)
+#   lib_deps (R/O, runtime=electron): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

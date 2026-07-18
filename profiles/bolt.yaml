@@ -1,0 +1,26 @@
+name: bolt
+version: 1
+updated: "2026-04-04"
+description: "AI full-stack web app builder (StackBlitz)"
+binary: bolt
+runtime: nodejs
+config_dirs:
+  - "~/.bolt"
+env_keys:
+  - ANTHROPIC_API_KEY
+  - OPENAI_API_KEY
+network:
+  hosts:
+    - api.anthropic.com
+    - api.openai.com
+    - stackblitz.com
+    - registry.npmjs.org
+
+passthrough:
+  - NODE_HOME
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=nodejs): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true

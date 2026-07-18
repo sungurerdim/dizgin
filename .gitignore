@@ -1,0 +1,43 @@
+# Build artifacts
+*.exe
+/bin/
+/dist/
+/dizgin
+/dizgind
+/tests/e2e/testdata/dizgin
+/tests/e2e/testdata/dizgin.exe
+/tests/e2e/testdata/dizgind
+/tests/e2e/testdata/dizgind.exe
+
+# Go test cache
+*.test
+*.out
+
+# Editor and OS files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# GoReleaser
+dist/
+
+# Claude Code local settings
+.claude/
+
+# Tools (large binaries, container layers, Procmon traces)
+tools/
+.audit/*.json
+
+# ds-tune transient bench artifact (regenerated each run)
+/auto/run.log
+
+# dev-skills transient state
+ds/audit/
+ds/tune/
+
+# completed task spec artifacts (dev-rules: deleted at completion, not committed)
+tasks.md
+/schemagen

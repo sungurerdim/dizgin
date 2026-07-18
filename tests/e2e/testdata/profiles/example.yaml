@@ -1,0 +1,91 @@
+# Example dizgin tool profile — copy and customize for your own tools.
+#
+# Place custom profiles in: ~/.dizgin/profiles/<name>.yaml
+# They override bundled profiles with the same name.
+#
+# Usage:
+#   dizgin mytool [args...]              # auto-detected from profile name
+#   dizgin --sandbox=full mytool         # force full isolation mode
+#   dizgin --sandbox=restricted mytool   # force restricted-token mode
+
+# --- Required fields ---
+
+name: mytool                    # tool name (matches binary name by default)
+version: 1                      # profile schema version
+updated: "2026-03-27"           # last update date
+description: "My AI coding tool"
+
+# --- Binary & Runtime ---
+
+binary: mytool                  # executable name (looked up in PATH)
+# runtime: nodejs               # nodejs | bun | python | go | electron | rust | java
+                                # affects npm cache mount (nodejs/bun/electron → mounted)
+
+# --- IPC Mode (informational only) ---
+# Historical hint about how the tool talks to the host. The runtime
+# sandbox backend is now selected purely by platform (Windows →
+# AppContainer + LowBox + Job, macOS → Seatbelt, Linux → bubblewrap),
+# so changing this field has NO effect on the active backend or
+# isolation policy. Kept for round-tripping older profile YAML files.
+#   stdio  — typical CLI tools that read/write os.Std{in,out}.
+#   pipe   — tools using anonymous pipes (e.g. some Electron forks).
+#   socket — tools that listen on a UNIX socket / Windows named pipe.
+
+ipc: stdio                      # stdio | pipe | socket  (informational, ignored at runtime)
+
+# --- Filesystem Access ---
+
+config_dirs:                    # mounted R/W inside sandbox (tool's own config)
+  - "~/.mytool"                 # Unix home-relative
+  - "~/.config/mytool"          # XDG config
+  - "%APPDATA%/mytool"          # Windows AppData (env var expanded)
+  - "%LOCALAPPDATA%/mytool"     # Windows LocalAppData
+  - "~/Library/Application Support/mytool"  # macOS
+
+# runtime_dirs:                 # mounted R/O (binary bundles, VM snapshots)
+#   - "/opt/mytool/lib"
+
+# --- Credentials ---
+
+env_keys:                       # environment variables to discover and inject
+  - MYTOOL_API_KEY              # tool-specific API key
+  - OPENAI_API_KEY              # shared API keys
+  - ANTHROPIC_API_KEY
+
+# --- Network Policy ---
+
+network:
+  # policy: open                # open (default) | blocked | allowlist
+  hosts:                        # allowlist hosts (when policy: allowlist)
+    - api.mytool.com
+    - api.openai.com
+    - api.anthropic.com
+
+# --- Default Arguments ---
+# Injected before user args. Use for auto-approve, skip-permissions, etc.
+
+# default_args:
+#   - "--dangerously-skip-permissions"    # Claude Code
+#   - "--yes-always"                       # Aider
+#   - "--yolo"                             # Gemini, OpenCode, Codex
+#   - "--allow-all"                        # GitHub Copilot
+#   - "--trust-all-tools"                  # Amazon Q / Kiro
+#   - "--full"                             # Plandex (full autonomy)
+#   - "--skip-menu"                        # Plandex (skip change review)
+#   - "--auto-context"                     # Mentat
+
+# --- Environment Variables ---
+# Injected into tool's environment. Use for telemetry, privacy, perf tweaks.
+
+env:
+  DO_NOT_TRACK: "1"             # generic telemetry opt-out (supported by some tools)
+  # DISABLE_TELEMETRY: "1"       # Claude Code: disable Statsig analytics
+  # DISABLE_ERROR_REPORTING: "1" # Claude Code: disable Sentry
+  # DISABLE_AUTOUPDATER: "1"     # Claude Code: disable auto-updater
+  # AIDER_ANALYTICS: "0"         # Aider: disable PostHog analytics
+  # GEMINI_TELEMETRY_ENABLED: "false"  # Gemini CLI: disable telemetry
+
+# --- Sandbox Override ---
+# Force a specific sandbox mode. Usually auto-detected from ipc field.
+
+# sandbox: full                 # full (AppContainer) | restricted (token+DACL)

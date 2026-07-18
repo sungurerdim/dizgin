@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Dispatcher — git core.hooksPath points at this directory, this file is
+# run by git as the pre-commit hook. We pick the platform-appropriate
+# implementation in scripts/ so contributors only see one entry point.
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+case "$(uname -s 2>/dev/null || echo Windows)" in
+  MINGW*|MSYS*|CYGWIN*|Windows*)
+    # Git for Windows ships bash, but PowerShell is the canonical
+    # shell on Windows. Prefer the .ps1 implementation when pwsh /
+    # powershell is on PATH; fall back to the shell version otherwise.
+    if command -v pwsh >/dev/null 2>&1; then
+      exec pwsh -NoProfile -ExecutionPolicy Bypass -File "${repo_root}/scripts/pre-commit.ps1"
+    elif command -v powershell >/dev/null 2>&1; then
+      exec powershell -NoProfile -ExecutionPolicy Bypass -File "${repo_root}/scripts/pre-commit.ps1"
+    fi
+    ;;
+esac
+
+exec bash "${repo_root}/scripts/pre-commit.sh"

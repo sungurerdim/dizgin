@@ -1,0 +1,46 @@
+name: continue
+version: 1
+updated: "2026-04-04"
+description: "Open-source coding assistant (VS Code/JetBrains)"
+binary: cn
+runtime: nodejs
+config_dirs:
+  - "~/.continue"
+  # Note: ~/.continue includes config.yaml + permissions.yaml via DACL inheritance.
+  # %USERPROFILE%/.continue is redundant — ~ expands to %USERPROFILE% on Windows.
+env_keys:
+  - OPENAI_API_KEY
+  - ANTHROPIC_API_KEY
+  - MISTRAL_API_KEY
+  - CONTINUE_API_KEY
+  - CONTINUE_CONFIG_DIR
+  - CONTINUE_LOG_LEVEL
+network:
+  hosts:
+    - api.openai.com
+    - api.anthropic.com
+    - missioncontrol.continue.dev
+    - registry.npmjs.org
+    - open-vsx.org
+
+# dizgin provides the sandbox — auto-approve all tool operations
+default_args:
+  - "--allow"
+  - "Write()"
+  - "--allow"
+  - "Bash()"
+  - "--allow"
+  - "Read()"
+
+passthrough:
+  - NODE_HOME
+
+# Defaults applied automatically (see internal/config/defaults.go):
+#   tool_deps (R/W): %ProgramFiles%/Git, ~/.cache
+#   mcp_dirs (R/W): ~/.mcp
+#   lib_deps (R/O, runtime=nodejs): %ProgramFiles%/nodejs, %NODE_HOME%, %APPDATA%/npm
+#   env: DO_NOT_TRACK=1, CHOKIDAR_USEPOLLING=1, WATCHPACK_POLLING=true
+
+# DO_NOT_TRACK is applied by default
+env:
+  CONTINUE_TELEMETRY_ENABLED: "0"

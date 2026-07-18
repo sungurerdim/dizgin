@@ -1,0 +1,84 @@
+name: Bug report
+description: Report unexpected behaviour in dizgin or dizgind.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill in the
+        fields below so the maintainer can reproduce the issue.
+
+  - type: input
+    id: version
+    attributes:
+      label: DIZGIN version
+      description: Output of `dizgin --version` (or `dizgind --version`).
+      placeholder: "dizgin 0.1.0 (commit abc1234, built 2026-05-06)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux (x86_64)
+        - Linux (arm64)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Sandbox backend
+      options:
+        - Restricted token + Medium IL (Windows)
+        - Seatbelt (macOS)
+        - bubblewrap (Linux)
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: tool
+    attributes:
+      label: AI tool
+      description: Which tool you were running through dizgin (claude, codex, cursor, …).
+      placeholder: "claude"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: Minimal command sequence that triggers the bug.
+      placeholder: |
+        1. Run `dizgin ...`
+        2. Observe ...
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs. observed
+      description: What did you expect to happen? What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        Please redact any credentials before pasting. Set
+        `DIZGIN_DEBUG=1` to enable verbose output if helpful.
+      render: shell

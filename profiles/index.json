@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "updated": "2026-03-23",
+  "profiles": [
+    {"name": "claude",    "version": 1, "file": "claude.yaml"},
+    {"name": "copilot",   "version": 1, "file": "copilot.yaml"},
+    {"name": "aider",     "version": 1, "file": "aider.yaml"},
+    {"name": "codex",     "version": 1, "file": "codex.yaml"},
+    {"name": "gemini",    "version": 1, "file": "gemini.yaml"},
+    {"name": "opencode",  "version": 1, "file": "opencode.yaml"},
+    {"name": "cursor",    "version": 1, "file": "cursor.yaml"},
+    {"name": "windsurf",  "version": 1, "file": "windsurf.yaml"},
+    {"name": "continue",  "version": 1, "file": "continue.yaml"},
+    {"name": "cody",      "version": 1, "file": "cody.yaml"},
+    {"name": "amazonq",   "version": 1, "file": "amazonq.yaml"},
+    {"name": "tabnine",   "version": 1, "file": "tabnine.yaml"},
+    {"name": "swe-agent", "version": 1, "file": "swe-agent.yaml"},
+    {"name": "mentat",    "version": 1, "file": "mentat.yaml"},
+    {"name": "plandex",   "version": 1, "file": "plandex.yaml"},
+    {"name": "gpt-pilot", "version": 1, "file": "gpt-pilot.yaml"},
+    {"name": "qodo",      "version": 1, "file": "qodo.yaml"},
+    {"name": "roo-code",  "version": 1, "file": "roo-code.yaml"},
+    {"name": "void",      "version": 1, "file": "void.yaml"},
+    {"name": "sweep",     "version": 1, "file": "sweep.yaml"},
+    {"name": "devin",     "version": 1, "file": "devin.yaml"},
+    {"name": "bolt",      "version": 1, "file": "bolt.yaml"},
+    {"name": "v0",        "version": 1, "file": "v0.yaml"},
+    {"name": "lovable",   "version": 1, "file": "lovable.yaml"}
+  ]
+}

@@ -1,0 +1,175 @@
+# Example dizgin tool profile — copy and customize for your own tools.
+#
+# Place custom profiles in: ~/.dizgin/profiles/<name>.yaml
+# They override bundled profiles with the same name.
+#
+# Usage:
+#   dizgin mytool [args...]                # run the tool inside the sandbox
+#   dizgin --learn -- mytool [args...]     # learn-mode: capture sensitive-path
+#                                         denials, save decisions to
+#                                         ~/.dizgin/permissions/<tool>.yaml
+
+# --- Required fields ---
+
+name: mytool                    # tool name (matches binary name by default)
+version: 1                      # profile schema version
+updated: "2026-05-18"           # last update date
+description: "My AI coding tool"
+
+# --- Binary & Runtime ---
+
+binary: mytool                  # executable name (looked up in PATH)
+# runtime: nodejs               # nodejs | bun | python | go | electron | rust | java
+                                # Affects npm cache mount (nodejs/bun/electron → mounted)
+                                # and the per-runtime compatibility defaults below.
+
+# --- Filesystem Access ---
+#
+# Three categories of mounts:
+#
+#   config_dirs  (R/W) — Tool's own config, state, auth, cache files.
+#   tool_deps    (R/W) — Dependencies that need write access at init (e.g. custom build tools).
+#   lib_deps     (R/O) — Static binary installations (language runtimes, custom interpreters).
+#
+# Defaults applied automatically to EVERY tool (see internal/config/defaults.go):
+#   tool_deps: %ProgramFiles%/Git  — MSYS2 bash needs /tmp, /dev, lock files at init
+#   lib_deps:  %ProgramFiles%/nodejs, %NODE_HOME%  — if runtime=nodejs|node|electron
+#              %LOCALAPPDATA%/Programs/Python, %PYTHON_HOME%  — if runtime=python
+#   env:       DO_NOT_TRACK=1
+#
+# To opt out of a specific default, add it to exclude_defaults:
+#   exclude_defaults:
+#     - "%ProgramFiles%/Git"   # path to exclude from tool_deps defaults
+#     - "DO_NOT_TRACK"         # env key to exclude from env defaults
+
+config_dirs:                    # mounted R/W inside sandbox (tool's own config)
+  - "~/.mytool"                 # ~ expands to home on ALL platforms (incl. Windows)
+  - "~/.config/mytool"          # XDG config (some tools use this on all platforms)
+  - "%APPDATA%/mytool"          # Windows-only: env var expanded, skipped on other OS
+  - "%LOCALAPPDATA%/mytool"     # Windows-only: env var expanded, skipped on other OS
+  - "~/Library/Application Support/mytool"  # macOS-only: skipped if dir doesn't exist
+  # Note: ~ already expands to %USERPROFILE% on Windows, so don't duplicate with
+  # %USERPROFILE%/.mytool — it would mount the same directory twice.
+
+# tool_deps:                    # mounted R/W (extra deps needing write at init — beyond default Git)
+#   - "/opt/mytool/sdk"           # static path (always mounted if it exists)
+
+# lib_deps:                     # mounted R/O (static runtime installations — beyond runtime defaults)
+#   - "/opt/mytool/lib"           # static path (always mounted if it exists)
+
+# --- Passthrough ---
+# Forward named env vars from the host process into the container.
+# Use for runtime overrides (custom install paths, active venvs, etc.).
+# Set to ["*"] to forward ALL host env vars (use with caution).
+
+# passthrough:
+#   - NODE_HOME                   # custom Node.js path
+#   - PYTHON_HOME                 # custom Python path
+#   - VIRTUAL_ENV                 # active Python venv
+#   - PYTHONPATH                  # Python module search paths
+
+# --- Exclude Defaults ---
+# Remove specific defaults from this tool's mount/env set.
+# Works for both path strings and env key names.
+
+# exclude_defaults:
+#   - "%ProgramFiles%/Git"        # tool doesn't need bash — skip Git mount
+#   - "DO_NOT_TRACK"              # tool manages its own telemetry setting
+
+# --- Credentials ---
+
+env_keys:                       # environment variables to discover and inject
+  - MYTOOL_API_KEY              # tool-specific API key
+  - OPENAI_API_KEY              # shared API keys
+  - ANTHROPIC_API_KEY
+
+# --- Network Policy ---
+
+network:
+  # policy: open                # open (default) | blocked | allowlist
+  hosts:                        # allowlist hosts (when policy: allowlist)
+    - api.mytool.com
+    - api.openai.com
+    - api.anthropic.com
+
+# --- Default Arguments ---
+# Injected before user args. Use for auto-approve, skip-permissions, etc.
+
+# default_args:
+#   - "--dangerously-skip-permissions"    # Claude Code
+#   - "--yes-always"                       # Aider
+#   - "--yolo"                             # Gemini, OpenCode, Codex
+#   - "--allow-all"                        # GitHub Copilot
+#   - "--trust-all-tools"                  # Amazon Q / Kiro
+#   - "--full"                             # Plandex (full autonomy)
+#   - "--skip-menu"                        # Plandex (skip change review)
+#   - "--auto-context"                     # Mentat
+
+# --- Environment Variables ---
+# Injected into tool's environment. Use for telemetry, privacy, perf tweaks.
+
+# DO_NOT_TRACK=1 is applied by default.
+# Only add tool-specific env vars here.
+
+# env:
+#   DISABLE_TELEMETRY: "1"       # Claude Code: disable Statsig analytics
+#   DISABLE_ERROR_REPORTING: "1" # Claude Code: disable Sentry
+#   DISABLE_AUTOUPDATER: "1"     # Claude Code: disable auto-updater
+#   AIDER_ANALYTICS: "0"         # Aider: disable PostHog analytics
+#   GEMINI_TELEMETRY_ENABLED: "false"  # Gemini CLI: disable telemetry
+
+# --- Compatibility toggles (iter5 + iter6) ---
+# Per-tool overrides for dizgin's defence-in-depth hardening. All fields
+# are optional; unset → "use dizgin's compiled default for this runtime".
+# Bun-runtime tools (Claude Code, Bun CLI shipped as a SEA) inherit
+# temp_override + handle_list_allowlist ON automatically — their
+# self-extracting layout requires both.
+
+# compatibility:
+#   # iter5 L1 — per-session TEMP / TMP / TMPDIR redirect to the
+#   # restricted backend's scratch dir so Bun-class self-extracting
+#   # runtimes don't leak into the host's %TEMP%. Default: true.
+#   # Emergency: DIZGIN_NO_TEMP_OVERRIDE=1.
+#   temp_override: true
+#
+#   # iter5 L2 — PROC_THREAD_ATTRIBUTE_HANDLE_LIST PTAL entry so only
+#   # the three stdio handles inherit into the child. Default: true.
+#   # Emergency: DIZGIN_NO_HANDLE_LIST=1.
+#   handle_list_allowlist: true
+#
+#   # Forward-looking — dizgin doesn't currently emit either mitigation
+#   # policy. Reserved YAML fields so future hardening passes can ship
+#   # without breaking existing profiles' strict-mode parse.
+#   allow_dynamic_code: true
+#   allow_low_label_images: true
+#
+#   # iter6 Phase C — nested mitigation_policy block.
+#   mitigation_policy:
+#     # Opt-in only. Sets PROCESS_CREATION_MITIGATION_POLICY_
+#     # BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON when spawning the child.
+#     # Breaks any tool that loads third-party DLLs by design.
+#     block_non_microsoft_binaries: false
+
+# --- Permission Learning (iter6 Phase D) ---
+# Dizgin's Windows backend writes DACL DENY ACEs on a hardcoded SSOT of
+# credential paths (~/.ssh, ~/.aws/credentials, DPAPI vault, browser
+# cookies, …) at session start. Most AI coding tools never touch any
+# of these, so the default DENY is invisible.
+#
+# When a tool legitimately needs one of the sensitive paths, run it
+# once under learn mode to capture the denials and persist the user's
+# decisions:
+#
+#   dizgin --learn -- mytool [args...]
+#
+# On exit dizgin prompts [rw/ro/deny/skip] for each captured path; the
+# decisions are atomically written to:
+#
+#   ~/.dizgin/permissions/mytool.yaml
+#
+# The next normal run auto-loads the file and exempts the listed paths
+# from the DENY pass. Re-run with --learn to re-prompt; delete the
+# file to revert to the SSOT default.
+#
+# This is per-tool — granting ~/.aws/credentials to "claude" doesn't
+# grant it to "aider". Each tool gets its own decision file.

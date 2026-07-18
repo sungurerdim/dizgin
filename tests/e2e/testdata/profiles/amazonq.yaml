@@ -1,0 +1,28 @@
+name: amazonq
+version: 3
+updated: "2026-03-27"
+description: "AWS AI coding assistant (Kiro)"
+binary: q
+runtime: nodejs
+ipc: stdio
+config_dirs:
+  - "~/.kiro"
+  - "~/.kiro/settings"
+  - "~/.kiro/agents"
+  - "~/.aws/amazonq"
+  - "%USERPROFILE%/.kiro"
+env_keys:
+  - AWS_PROFILE
+  - AWS_REGION
+  - KIRO_API_KEY
+  - KIRO_LOG_LEVEL
+network:
+  hosts:
+    - q.us-east-1.amazonaws.com
+
+# dizgin provides the sandbox — trust all tools
+default_args:
+  - "--trust-all-tools"
+
+env:
+  DO_NOT_TRACK: "1"

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WiX v4 source for the dizgin Windows MSI installer (Phase 1 plan, item F2).
+
+  This is the scaffolding only — real production builds depend on:
+    1. WiX v4 toolchain installed (`dotnet tool install --global wix`).
+    2. A code-signing certificate referenced in the build script
+       (Phase 1 plan, item F1 — EV cert procurement is the long-lead
+       blocker; Azure Trusted Signing is the cloud fallback).
+    3. The dizgin.exe + dizgind.exe binaries built via `make build` and
+       staged under bin\.
+
+  Build command (from repo root):
+    wix build windows/dizgin.wxs ^
+      -d Version=1.0.0 ^
+      -d BinDir=bin ^
+      -arch x64 ^
+      -o dist/dizgin-windows-amd64.msi
+
+  Sign with:
+    signtool sign /tr http://timestamp.digicert.com /td sha256 /fd sha256 \
+      /a dist/dizgin-windows-amd64.msi
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="dizgin"
+           Manufacturer="dizgin"
+           Version="$(Version)"
+           UpgradeCode="C8B7E3F4-2A1D-4E9C-8A6B-91F3D7C1E0A2"
+           Scope="perMachine">
+
+    <!-- Same UpgradeCode across versions enables MajorUpgrade to
+         remove an older install before laying down the new one. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of dizgin is already installed." />
+
+    <!-- Single MSI (no patch chain, no per-feature opt-in). Compress
+         payload into the MSI itself so the installer is one file. -->
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- WixUI dialog set: HostnameDlg → AcceptLicenseDlg → InstallDirDlg.
+         WixUI_InstallDir gives the user a directory picker. -->
+    <ui:WixUI Id="WixUI_InstallDir" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+
+    <!-- Default install location: %ProgramFiles%\dizgin. Per-machine
+         scope (Scope="perMachine" on Package) means this requires UAC
+         elevation at install time, but dizgin runs unelevated afterward. -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLDIR" Name="dizgin">
+        <Component Id="CopBinary" Guid="*">
+          <File Id="CopExe"
+                Source="$(BinDir)\dizgin.exe"
+                KeyPath="yes" />
+        </Component>
+        <Component Id="StationBinary" Guid="*">
+          <File Id="StationExe"
+                Source="$(BinDir)\dizgind.exe"
+                KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- ProgramData\dizgin is created so the persistent stamp marker
+         cache + DLL closure cache (Phase 1 plan, items A2 + A3) have
+         a writable shared root from the first dizgin call. -->
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="DizginProgramData" Name="dizgin">
+        <Component Id="ProgramDataDir" Guid="*">
+          <CreateFolder>
+            <util:PermissionEx User="Users" GenericAll="yes" />
+          </CreateFolder>
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Add INSTALLDIR to the system PATH so dizgin.exe + dizgind.exe
+         resolve from any shell. The PATH edit is idempotent — WiX
+         only appends if the directory is not already present. -->
+    <Component Id="PathEnv" Guid="*" Directory="INSTALLDIR">
+      <Environment Id="PathEntry"
+                   Name="PATH"
+                   Value="[INSTALLDIR]"
+                   Permanent="no"
+                   Part="last"
+                   Action="set"
+                   System="yes" />
+      <RegistryValue Root="HKLM"
+                     Key="Software\dizgin"
+                     Name="InstallDir"
+                     Type="string"
+                     Value="[INSTALLDIR]"
+                     KeyPath="yes" />
+    </Component>
+
+    <!-- Scheduled task that prewarms dizgind at user logon (Phase 1
+         plan, item A6). Reduces the first dizgin call's daemon-dial
+         latency from ~200 ms to ~5 ms. -->
+    <Component Id="StationPrewarmTask" Guid="*" Directory="INSTALLDIR">
+      <File Id="PrewarmTaskXml"
+            Source="$(BinDir)\dizgind-prewarm.xml"
+            KeyPath="yes" />
+      <util:XmlConfig Id="PrewarmTaskInstall"
+                      File="[INSTALLDIR]dizgind-prewarm.xml"
+                      Action="create"
+                      ElementPath="/"
+                      On="install"
+                      Sequence="1" />
+    </Component>
+
+    <Feature Id="Main" Title="dizgin" Level="1">
+      <ComponentRef Id="CopBinary" />
+      <ComponentRef Id="StationBinary" />
+      <ComponentRef Id="ProgramDataDir" />
+      <ComponentRef Id="PathEnv" />
+      <ComponentRef Id="StationPrewarmTask" />
+    </Feature>
+
+    <!-- Custom action: register dizgind as a logon-triggered task via
+         schtasks.exe. Runs once at install time, removed by the
+         matching uninstall action below. -->
+    <CustomAction Id="RegisterStationTask"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check"
+                  ExeCommand='schtasks /Create /TN "dizgin-dizgind-prewarm" /XML "[INSTALLDIR]dizgind-prewarm.xml" /F'
+                  Directory="INSTALLDIR" />
+
+    <CustomAction Id="UnregisterStationTask"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore"
+                  ExeCommand='schtasks /Delete /TN "dizgin-dizgind-prewarm" /F'
+                  Directory="INSTALLDIR" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RegisterStationTask" After="InstallFiles" Condition="NOT Installed" />
+      <Custom Action="UnregisterStationTask" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot;" />
+    </InstallExecuteSequence>
+
+  </Package>
+</Wix>

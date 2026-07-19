@@ -202,10 +202,10 @@ type processMitigationDynamicCodePolicy struct {
 	Flags uint32
 }
 
-// GetCurrentProcessDEP queries DEP state on the current process.
+// getCurrentProcessDEP queries DEP state on the current process.
 // Returns (enabled, permanent, error). Used by Phase 1 tests to
 // confirm the GetProcessMitigationPolicy wiring is live.
-func GetCurrentProcessDEP() (enabled, permanent bool, err error) {
+func getCurrentProcessDEP() (enabled, permanent bool, err error) {
 	var pol processMitigationDEPPolicy
 	r, _, e := procGetProcessMitigationPolicy.Call(
 		uintptr(windows.CurrentProcess()),
@@ -219,8 +219,8 @@ func GetCurrentProcessDEP() (enabled, permanent bool, err error) {
 	return pol.Flags&0x1 != 0, pol.Permanent != 0, nil
 }
 
-// GetCurrentProcessASLR queries ASLR state on the current process.
-func GetCurrentProcessASLR() (bottomUp, forceRelocate, highEntropy bool, err error) {
+// getCurrentProcessASLR queries ASLR state on the current process.
+func getCurrentProcessASLR() (bottomUp, forceRelocate, highEntropy bool, err error) {
 	var pol processMitigationASLRPolicy
 	r, _, e := procGetProcessMitigationPolicy.Call(
 		uintptr(windows.CurrentProcess()),
@@ -234,10 +234,10 @@ func GetCurrentProcessASLR() (bottomUp, forceRelocate, highEntropy bool, err err
 	return pol.Flags&0x1 != 0, pol.Flags&0x2 != 0, pol.Flags&0x4 != 0, nil
 }
 
-// GetCurrentProcessDynamicCode queries ACG state on the current process.
+// getCurrentProcessDynamicCode queries ACG state on the current process.
 // Returns true when ProhibitDynamicCode is ON — for the dizgin parent we
 // expect FALSE (the parent runs as a regular user process).
-func GetCurrentProcessDynamicCode() (prohibit bool, err error) {
+func getCurrentProcessDynamicCode() (prohibit bool, err error) {
 	var pol processMitigationDynamicCodePolicy
 	r, _, e := procGetProcessMitigationPolicy.Call(
 		uintptr(windows.CurrentProcess()),

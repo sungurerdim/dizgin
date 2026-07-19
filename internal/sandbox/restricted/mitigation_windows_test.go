@@ -87,23 +87,23 @@ func TestMitigationPoliciesApplied(t *testing.T) {
 		// We cannot assert ON/OFF — Go runtime may or may not enable
 		// DEP on its own. Asserting on call success proves the
 		// proc resolver + struct layout are correct.
-		if _, _, err := GetCurrentProcessDEP(); err != nil {
-			t.Errorf("GetCurrentProcessDEP: %v", err)
+		if _, _, err := getCurrentProcessDEP(); err != nil {
+			t.Errorf("getCurrentProcessDEP: %v", err)
 		}
 	})
 
 	t.Run("GetProcessMitigationPolicy_ASLR_syscall_wiring", func(t *testing.T) {
-		if _, _, _, err := GetCurrentProcessASLR(); err != nil {
-			t.Errorf("GetCurrentProcessASLR: %v", err)
+		if _, _, _, err := getCurrentProcessASLR(); err != nil {
+			t.Errorf("getCurrentProcessASLR: %v", err)
 		}
 	})
 
 	t.Run("GetProcessMitigationPolicy_DynamicCode_syscall_wiring", func(t *testing.T) {
 		// The dizgin parent runs as a regular user process — ACG should
 		// not be on. We assert wiring + the expected baseline value.
-		prohibit, err := GetCurrentProcessDynamicCode()
+		prohibit, err := getCurrentProcessDynamicCode()
 		if err != nil {
-			t.Errorf("GetCurrentProcessDynamicCode: %v", err)
+			t.Errorf("getCurrentProcessDynamicCode: %v", err)
 			return
 		}
 		if prohibit {

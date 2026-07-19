@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/sungurerdim/dizgin/internal/audit"
 	"github.com/sungurerdim/dizgin/internal/brand"
@@ -13,10 +14,23 @@ import (
 )
 
 // wfpEnabled reports whether the session should attempt user-mode WFP
-// network enforcement: a non-empty allowlist policy and the DIZGIN_NO_WFP
+// network enforcement: Windows only (WFP is a Windows-specific API —
+// internal/netfilter/wfp_other.go no-ops on every other OS by design,
+// macOS/Linux allowlist enforcement happens inside their own sandbox
+// backend instead), a non-empty allowlist policy, and the DIZGIN_NO_WFP
 // emergency switch not set. Mirrors the env-switch pattern of the other
 // defense layers (DIZGIN_NO_TEMP_OVERRIDE, DIZGIN_NO_HANDLE_LIST).
+//
+// Without the GOOS gate, every macOS/Linux session with an allowlist
+// policy dialed the elevated-daemon broker anyway, got a "dial unix
+// .../dizgind.sock: no such file or directory" failure, and printed
+// "Start the dizgind daemon (elevated) for WFP enforcement" — advice
+// that cannot ever apply on those platforms, since WFP does not exist
+// there. Verified reproducing on macOS 26.
 func wfpEnabled(cfg *config.Config) bool {
+	if runtime.GOOS != "windows" {
+		return false
+	}
 	if os.Getenv(brand.Env("NO_WFP")) == "1" {
 		return false
 	}

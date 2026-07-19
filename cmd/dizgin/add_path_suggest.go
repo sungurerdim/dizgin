@@ -20,7 +20,18 @@ import (
 // defaultSuggestModel is the Anthropic model used for the `dizgin add-path
 // --suggest` LLM enrichment step. Keeping it as a named const makes it
 // easy to locate and update without searching through literal strings.
+// Override at runtime with $DIZGIN_SUGGEST_MODEL (e.g. to pin a specific
+// model snapshot without a rebuild).
 const defaultSuggestModel = "claude-haiku-4-5"
+
+// suggestModel returns the model to use for --suggest, honoring
+// $DIZGIN_SUGGEST_MODEL when set.
+func suggestModel() string {
+	if m := os.Getenv("DIZGIN_SUGGEST_MODEL"); m != "" {
+		return m
+	}
+	return defaultSuggestModel
+}
 
 // runAddPathSuggest powers `dizgin add-path --suggest <path>...`.
 //
@@ -55,12 +66,16 @@ func runAddPathSuggest(paths []string, tool string) error {
 	// Set this if you need fully offline / air-gapped operation.
 	noSuggest := os.Getenv(brand.Env("NO_SUGGEST")) == "1"
 	apiKey := strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY"))
-	if noSuggest {
+	switch {
+	case noSuggest:
 		apiKey = "" // treat as unset — heuristic only
 		fmt.Fprintln(os.Stderr, brand.Name+": DIZGIN_NO_SUGGEST=1 — using heuristic suggestions only")
 		fmt.Fprintln(os.Stderr, "")
-	} else if apiKey == "" {
+	case apiKey == "":
 		fmt.Fprintln(os.Stderr, brand.Name+": ANTHROPIC_API_KEY not set — using heuristic suggestions only")
+		fmt.Fprintln(os.Stderr, "")
+	default:
+		fmt.Fprintln(os.Stderr, brand.Name+": --suggest sends each absolute path (which may reveal your OS username), its kind, and a few derived booleans to api.anthropic.com — file contents are never read or transmitted. Set DIZGIN_NO_SUGGEST=1 to use heuristic-only suggestions.")
 		fmt.Fprintln(os.Stderr, "")
 	}
 
@@ -203,7 +218,7 @@ func callAnthropicSuggest(apiKey string, c pathContext, tool string) (suggestion
 	prompt := buildLLMSuggestPrompt(c, tool)
 
 	body := map[string]any{
-		"model":      defaultSuggestModel,
+		"model":      suggestModel(),
 		"max_tokens": 256,
 		"messages": []map[string]any{
 			{"role": "user", "content": prompt},

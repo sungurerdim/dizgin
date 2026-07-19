@@ -6,6 +6,7 @@ package seatbelt
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -105,6 +106,63 @@ func TestGenerateProfile_MountPaths(t *testing.T) {
 	}
 	if strings.Contains(profile, `(allow file-write* (subpath "/usr/local/bin"))`) {
 		t.Error("read-only mount should not have file-write rule")
+	}
+}
+
+// TestGenerateProfile_SymlinkedMountAncestorsCoverBothForms pins the fix
+// for a real crash: a mount whose ORIGINAL (as-declared) path passes
+// through an intermediate symlink — the exact shape of Homebrew's
+// convenience layout, /opt/homebrew/opt/<pkg> -> ../Cellar/<pkg>/<ver> —
+// needs a metadata allow on the symlink's OWN ancestor chain, not just the
+// resolved (canonical) destination's. Without it, the kernel cannot even
+// read the symlink to discover where it points, and denies the whole
+// lookup before the canonical-path rule is ever reached. Verified against
+// a real Homebrew git: its pcre2 dylib dependency (referenced by git as
+// /opt/homebrew/opt/pcre2/lib/libpcre2-8.0.dylib) aborted with SIGABRT
+// until both ancestor chains were covered.
+func TestGenerateProfile_SymlinkedMountAncestorsCoverBothForms(t *testing.T) {
+	// t.TempDir() itself commonly lives under /var/folders/... on macOS,
+	// which is in turn a symlink to /private/var/folders/... — resolve it
+	// up front so the "resolved ancestor" expectation below matches
+	// exactly what resolvedHost() will produce, independent of that
+	// unrelated outer symlink.
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	realDir := filepath.Join(root, "real", "pkg", "lib")
+	if err := os.MkdirAll(realDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(realDir, "libfoo.dylib")
+	if err := os.WriteFile(target, []byte("fake"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	linkDir := filepath.Join(root, "opt", "pkg")
+	if err := os.MkdirAll(filepath.Join(root, "opt"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(root, "real", "pkg"), linkDir); err != nil {
+		t.Fatal(err)
+	}
+	asDeclared := filepath.Join(linkDir, "lib", "libfoo.dylib") // the symlinked form
+
+	opts := sandbox.CreateOpts{
+		Mounts: []sandbox.Mount{{Host: asDeclared, ReadOnly: true}},
+	}
+	profile := generateProfile(opts, nil)
+
+	// Ancestor of the ORIGINAL (symlinked) path: the symlink itself must
+	// be metadata-readable so the kernel can resolve it at all.
+	symlinkAncestor := fmt.Sprintf("(allow file-read-metadata (literal %s))", sbplQuotePath(linkDir))
+	if !strings.Contains(profile, symlinkAncestor) {
+		t.Errorf("profile missing metadata allow for the symlink itself (%s):\n%s", linkDir, profile)
+	}
+	// Ancestor of the RESOLVED (canonical) path: still needed for the
+	// final target's own permission check.
+	resolvedAncestor := fmt.Sprintf("(allow file-read-metadata (literal %s))", sbplQuotePath(filepath.Join(root, "real", "pkg")))
+	if !strings.Contains(profile, resolvedAncestor) {
+		t.Errorf("profile missing metadata allow for the resolved ancestor (%s):\n%s", filepath.Join(root, "real", "pkg"), profile)
 	}
 }
 
@@ -231,6 +289,29 @@ func TestBackendCreate_AllowlistCIDR_FailsClosed(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("CIDR allowlist entry must fail closed, got nil error")
+	}
+}
+
+// TestBackendCreate_AllowlistValidHost_FailsClosedWithoutDNS pins the fix for
+// the macOS sandbox-exec incompatibility: (remote ip/tcp "<addr>:<port>")
+// only accepts "*" or "localhost" as the host token on current macOS, so
+// resolved-IP allowlist filters either get cleanly rejected by sandbox-exec
+// or (for a host with an AAAA record) crash its SBPL parser outright.
+// Create must refuse this policy up front — for a syntactically valid,
+// resolvable-looking host, not just the already-covered empty/CIDR cases —
+// and must do so without ever touching the network (no DNS lookup call),
+// so the failure is instant and this test needs no connectivity.
+func TestBackendCreate_AllowlistValidHost_FailsClosedWithoutDNS(t *testing.T) {
+	b := &backend{}
+	_, err := b.Create(context.Background(), &config.Config{}, sandbox.CreateOpts{
+		Network:   config.NetworkAllowlist,
+		Allowlist: []string{"example.com"},
+	})
+	if err == nil {
+		t.Fatal("network.policy=allowlist must fail closed on macOS, got nil error")
+	}
+	if !strings.Contains(err.Error(), "not supported on this macOS version") {
+		t.Errorf("error should explain the macOS SBPL limitation, got: %v", err)
 	}
 }
 

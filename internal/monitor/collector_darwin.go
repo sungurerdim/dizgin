@@ -73,12 +73,19 @@ func collectPS(pid int, m *Metrics) error {
 }
 
 // collectProcessTree uses pgrep -P recursively to find child processes.
+//
+// treeDeadline bounds the entire BFS walk (not just each pgrep call) so a
+// pathologically deep or wide process tree cannot make one collection pass
+// exceed the monitor's polling interval.
 func collectProcessTree(rootPID int, m *Metrics) {
+	const treeDeadline = 5 * time.Second
+	deadline := time.Now().Add(treeDeadline)
+
 	visited := map[int]bool{rootPID: true}
 	queue := []int{rootPID}
 	var children []int
 
-	for len(queue) > 0 {
+	for len(queue) > 0 && time.Now().Before(deadline) {
 		pid := queue[0]
 		queue = queue[1:]
 		pgCtx, pgCancel := context.WithTimeout(context.Background(), 3*time.Second)

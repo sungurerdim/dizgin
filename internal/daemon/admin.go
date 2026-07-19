@@ -52,28 +52,6 @@ func QueryStatus() ([]InstanceInfo, error) {
 	return resp.Instances, nil
 }
 
-// SendRemoteCommand sends a control action (suspend/resume/kill/restart) to a session
-// via the daemon's admin IPC. Used by the remote TUI.
-func SendRemoteCommand(sessionID string, action CommandAction) error {
-	_, err := daemonCall(Message{
-		Type:   TypeRemoteCommand,
-		ID:     sessionID,
-		Action: action,
-	})
-	return err
-}
-
-// LaunchRemoteSession requests the daemon to spawn a new sandboxed session.
-func LaunchRemoteSession(tool, workdir string, args []string) error {
-	_, err := daemonCall(Message{
-		Type:    TypeLaunch,
-		Tool:    tool,
-		Workdir: workdir,
-		Args:    args,
-	})
-	return err
-}
-
 // ApplyNetworkFilter asks the (elevated) daemon to install the user-mode
 // WFP allowlist for a session, scoped to the appPath binary. Returns the
 // daemon's summary line on success or an error (daemon down, WFP failure,

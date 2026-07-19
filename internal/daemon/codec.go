@@ -29,10 +29,6 @@ const (
 	TypeQueryStatus MessageType = "query_status"
 	// TypeShutdown is sent by an admin client to request graceful daemon shutdown.
 	TypeShutdown MessageType = "shutdown"
-	// TypeLaunch is sent by an admin/TUI client to launch a new sandboxed session.
-	TypeLaunch MessageType = "launch"
-	// TypeRemoteCommand is sent by a remote TUI to control a session via admin IPC.
-	TypeRemoteCommand MessageType = "remote_command"
 	// TypeWFPApply is sent by dizgin to ask the elevated daemon to install
 	// the user-mode WFP network allowlist for a session. ID = sessionID,
 	// Path = tool binary (app-id scope), Args = raw allowlist entries.
@@ -49,7 +45,6 @@ const (
 	ActionSuspend CommandAction = "suspend"
 	ActionResume  CommandAction = "resume"
 	ActionKill    CommandAction = "kill"
-	ActionRestart CommandAction = "restart"
 )
 
 // Message is the canonical IPC message exchanged over the named pipe / unix socket.
@@ -70,10 +65,8 @@ const (
 // [deregister]     ID, Exit
 // [command]        ID, Action (server → dizgin)
 // [query_status]   (no payload fields)
-// [status]         Status, Instances, PID, Error (server response)
+// [status]         Status, Instances, Error (server response)
 // [shutdown]       (no payload fields; response: Status="shutting_down")
-// [launch]         Tool, Workdir, Args
-// [remote_command] ID, Action
 // [wfp_apply]      ID=sessionID, Path=tool-binary (app-id scope),
 //
 //	Args=raw allowlist entries (reuses generic fields; see admin.go ApplyNetworkFilter)
@@ -83,21 +76,21 @@ type Message struct {
 	// [all] Message type discriminator.
 	Type MessageType `json:"type"`
 
-	// [register, heartbeat, deregister, command, remote_command, wfp_apply, wfp_revoke]
+	// [register, heartbeat, deregister, command, wfp_apply, wfp_revoke]
 	// Session identifier assigned by dizgin at registration time.
 	ID string `json:"id,omitempty"`
 
-	// [command, remote_command] Action to perform on the session.
+	// [command] Action to perform on the session.
 	Action CommandAction `json:"action,omitempty"`
 
-	// [register, launch] Tool binary name (e.g. "claude", "cursor").
+	// [register] Tool binary name (e.g. "claude", "cursor").
 	Tool string `json:"tool,omitempty"`
 
 	// [wfp_apply] Tool binary path for app-id scoping of WFP filters.
 	// Not used by any non-WFP message type.
 	Path string `json:"path,omitempty"`
 
-	// [register, launch] Sandbox working directory.
+	// [register] Sandbox working directory.
 	Workdir string `json:"workdir,omitempty"`
 
 	// [register] Backend name (e.g. "restricted", "seatbelt", "bubblewrap").
@@ -112,8 +105,8 @@ type Message struct {
 	// [all error responses] Error message from the server.
 	Error string `json:"error,omitempty"`
 
-	// [register, launch, wfp_apply] Extra arguments.
-	// TypeRegister: tool argv; TypeLaunch: tool argv; TypeWFPApply: raw allowlist entries.
+	// [register, wfp_apply] Extra arguments.
+	// TypeRegister: tool argv; TypeWFPApply: raw allowlist entries.
 	Args []string `json:"args,omitempty"`
 
 	// [heartbeat] Child process IDs of the sandboxed session.
@@ -122,9 +115,7 @@ type Message struct {
 	// [status] Active instance snapshots returned by TypeQueryStatus.
 	Instances []InstanceInfo `json:"instances,omitempty"`
 
-	// [register] Caller process ID. [status] PID of a newly launched session
-	// (TypeLaunch response). Both uses share the "pid" JSON key; they appear
-	// in non-overlapping message types so there is no ambiguity on the wire.
+	// [register] Caller process ID.
 	PID int `json:"pid,omitempty"`
 
 	// [heartbeat] Process count in the session's Job Object / cgroup.

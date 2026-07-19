@@ -16,8 +16,6 @@ func TestCodecAllMessageTypes(t *testing.T) {
 		{Type: TypeCommand, ID: "r1", Action: ActionSuspend},
 		{Type: TypeQueryStatus},
 		{Type: TypeShutdown},
-		{Type: TypeLaunch, Tool: "copilot", Workdir: "/proj", Args: []string{"--flag"}},
-		{Type: TypeRemoteCommand, ID: "r1", Action: ActionKill},
 	}
 
 	pr, pw := io.Pipe()

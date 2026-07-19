@@ -13,11 +13,11 @@ import (
 )
 
 // isPrivilegedType returns true for message types that trigger privileged
-// daemon actions (shutdown, session launch, remote control, WFP brokering).
-// These types must only be accepted from callers that pass the peer-uid check.
+// daemon actions (shutdown, remote control, WFP brokering). These types
+// must only be accepted from callers that pass the peer-uid check.
 func isPrivilegedType(t MessageType) bool {
 	switch t {
-	case TypeShutdown, TypeLaunch, TypeRemoteCommand, TypeWFPApply, TypeWFPRevoke:
+	case TypeShutdown, TypeQueryStatus, TypeWFPApply, TypeWFPRevoke:
 		return true
 	}
 	return false
@@ -30,7 +30,6 @@ type Server struct {
 	listener net.Listener
 	ctx      context.Context
 	registry *Registry
-	launcher *Launcher
 	conns    map[string]*conn
 	cancel   context.CancelFunc
 	wg       sync.WaitGroup
@@ -55,7 +54,6 @@ func NewServer() *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Server{
 		registry: NewRegistry(),
-		launcher: NewLauncher(),
 		conns:    make(map[string]*conn),
 		ctx:      ctx,
 		cancel:   cancel,
@@ -64,9 +62,6 @@ func NewServer() *Server {
 
 // Registry returns the session registry for external use (e.g. REST API).
 func (s *Server) Registry() *Registry { return s.registry }
-
-// Launcher returns the session launcher for external use (e.g. REST API).
-func (s *Server) Launcher() *Launcher { return s.launcher }
 
 // Listen starts accepting connections on the platform transport.
 // It returns immediately; call Serve to handle accepted connections.
@@ -214,12 +209,6 @@ func (s *Server) dispatchMessage(c *conn, sessionID *string, msg Message) (done 
 	case TypeShutdown:
 		s.handleShutdown(c)
 		return true
-	case TypeLaunch:
-		s.handleLaunch(c, msg)
-		return true
-	case TypeRemoteCommand:
-		s.handleRemoteCommand(c, msg)
-		return true
 	default:
 		if s.handlePlatformMessage(c, msg) {
 			return true
@@ -295,48 +284,8 @@ func (s *Server) handleShutdown(c *conn) {
 }
 
 // Infos returns a snapshot of all active sessions.
-// It satisfies the tui.SessionSource interface.
 func (s *Server) Infos() []InstanceInfo {
 	return s.registry.Infos()
-}
-
-// handleLaunch processes a TypeLaunch message (admin/TUI session launch request).
-func (s *Server) handleLaunch(c *conn, msg Message) {
-	pid, err := s.launcher.LaunchSession(msg.Tool, msg.Workdir, msg.Args)
-	var resp Message
-	if err != nil {
-		resp = Message{Type: TypeStatus, Error: err.Error()}
-	} else {
-		resp = Message{Type: TypeStatus, PID: pid}
-	}
-	if sendErr := c.send(resp); sendErr != nil {
-		log.Debug("send launch response: %v", sendErr)
-	}
-}
-
-// handleRemoteCommand processes a TypeRemoteCommand message (remote TUI session command).
-func (s *Server) handleRemoteCommand(c *conn, msg Message) {
-	var resp Message
-	if msg.Action == ActionRestart {
-		killFn := func(id string) error {
-			return s.SendCommand(id, ActionKill)
-		}
-		pid, err := s.launcher.RestartSession(s.registry, msg.ID, killFn)
-		if err != nil {
-			resp = Message{Type: TypeStatus, Error: err.Error()}
-		} else {
-			resp = Message{Type: TypeStatus, PID: pid}
-		}
-	} else {
-		if err := s.SendCommand(msg.ID, msg.Action); err != nil {
-			resp = Message{Type: TypeStatus, Error: err.Error()}
-		} else {
-			resp = Message{Type: TypeStatus, Status: "ok"}
-		}
-	}
-	if err := c.send(resp); err != nil {
-		log.Debug("send remote command response: %v", err)
-	}
 }
 
 // SendCommand delivers a command message to the session identified by id.

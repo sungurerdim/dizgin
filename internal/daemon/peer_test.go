@@ -17,7 +17,7 @@ import (
 // types as non-privileged.
 func TestIsPrivilegedType(t *testing.T) {
 	privileged := []MessageType{
-		TypeShutdown, TypeLaunch, TypeRemoteCommand,
+		TypeShutdown, TypeQueryStatus,
 		TypeWFPApply, TypeWFPRevoke,
 	}
 	for _, mt := range privileged {
@@ -28,7 +28,7 @@ func TestIsPrivilegedType(t *testing.T) {
 
 	nonPrivileged := []MessageType{
 		TypeRegister, TypeHeartbeat, TypeDeregister,
-		TypeCommand, TypeStatus, TypeQueryStatus,
+		TypeCommand, TypeStatus,
 	}
 	for _, mt := range nonPrivileged {
 		if isPrivilegedType(mt) {

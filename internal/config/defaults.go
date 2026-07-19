@@ -3,14 +3,38 @@
 package config
 
 // DefaultToolchainDeps lists the universal R/W toolchain dependency paths applied to ALL tools.
-// These are build-tool home directories (GOPATH, Cargo, Rustup, pip user installs)
-// that AI coding tools spawn as sub-processes. The paths are ~ prefixed and
-// filtered by existingPaths() — tools not installed on the host are skipped.
+// These are build-tool home directories (GOPATH, Cargo, pip user installs)
+// that AI coding tools spawn as sub-processes — an AI coding tool routinely
+// needs to build/test the user's PROJECT in whatever language it's written
+// in, regardless of the AI tool's own implementation language, so these stay
+// universal rather than gated by the tool's own `runtime:` field. The paths
+// are ~ prefixed and filtered by existingPaths() — tools not installed on
+// the host are skipped.
+//
+// Narrower than the full home-relative directory where a meaningfully
+// narrower grant covers the same normal-usage functionality:
+//   - "~/.local/bin" + "~/.local/lib" (not the whole "~/.local"): pip
+//     --user and pipx write only under these two. The full "~/.local" tree
+//     also holds "~/.local/share" and "~/.local/state", which on this class
+//     of machine commonly hold unrelated apps' data (verified concretely:
+//     a version-manager's entire installed-runtime tree lives under
+//     "~/.local/share" here) that no coding tool has any legitimate reason
+//     to read, let alone write.
 var DefaultToolchainDeps = []string{
-	"~/go",      // GOPATH: go modules, go install targets, pkg/mod
-	"~/.cargo",  // CARGO_HOME: Cargo registry, installed tool binaries
-	"~/.rustup", // RUSTUP_HOME: Rust toolchains
-	"~/.local",  // pip --user installs, pipx binaries
+	"~/go",         // GOPATH: go modules, go install targets, pkg/mod
+	"~/.cargo",     // CARGO_HOME: Cargo registry, installed tool binaries
+	"~/.local/bin", // pipx-installed scripts, pip --user console_scripts
+	"~/.local/lib", // pip --user site-packages
+}
+
+// DefaultToolchainDepsRO lists universal R/O toolchain paths — read access
+// covers the common case (building/testing an existing project only reads
+// an already-installed toolchain); write is a rare, explicit action (e.g.
+// `rustup install nightly`) rather than routine build/test activity, so it
+// is not granted by default. A profile or `dizgin add-path` can still grant
+// RW explicitly for a tool that genuinely needs to manage toolchains itself.
+var DefaultToolchainDepsRO = []string{
+	"~/.rustup", // RUSTUP_HOME: installed Rust toolchains (read to compile; write only to install/update one)
 }
 
 // DefaultToolDeps lists the universal R/W tool dependency paths applied to ALL tools.

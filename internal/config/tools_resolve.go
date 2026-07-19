@@ -58,6 +58,15 @@ func (t ToolDef) DefaultFilteredToolchainDeps() []string {
 	return def
 }
 
+// DefaultFilteredToolchainDepsRO returns the universal default read-only
+// toolchain paths (DefaultToolchainDepsRO) after applying ExcludeDefaults,
+// existence-filtered. Kept separate from DefaultFilteredToolchainDeps so
+// callers mount these read-only rather than read-write.
+func (t ToolDef) DefaultFilteredToolchainDepsRO() []string {
+	def, _ := t.splitDeps(DefaultToolchainDepsRO, nil)
+	return def
+}
+
 // ExplicitToolchainDeps returns only the profile-declared toolchain_deps, existence-filtered.
 // Mounted with Force=true so backend safety filters do not silently drop them.
 func (t ToolDef) ExplicitToolchainDeps() []string {

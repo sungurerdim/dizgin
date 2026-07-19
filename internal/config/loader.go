@@ -14,10 +14,11 @@ import (
 )
 
 // Load reads a YAML config file (path may be empty to use defaults only),
-// merges CLI overrides and environment variables, applies defaults, and
-// validates the result.
+// merges environment variables, applies defaults, and validates the result.
+// The caller's -c/--config flag only selects which file this reads — it is
+// not a separate override layer.
 //
-// Precedence (highest → lowest): CLI flags > env vars > config file > defaults.
+// Precedence (highest → lowest): env vars > config file > defaults.
 func Load(path string) (*Config, error) {
 	v := viper.New()
 

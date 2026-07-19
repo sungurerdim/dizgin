@@ -76,10 +76,12 @@ Iter3 (2026-05-18) removed the `stamp_paths` / `revoke_sid` RPCs. iter6 went one
 ```bash
 make build | test | lint | fmt | tidy
 make e2e            # integration suite (windows/restricted)
-make hooks-install  # wire scripts/git-hooks → core.hooksPath
+make hooks-install  # wire scripts/git-hooks → core.hooksPath (pre-commit + pre-push)
+make release              # gated single-command release, version auto-detected (see CONTRIBUTING.md)
+make release TAG=vX.Y.Z   # or pin the version explicitly
 ```
 
-Quality gates: `go vet ./...` · `golangci-lint run` · `go test ./...` · `go build ./cmd/dizgin ./cmd/dizgind`.
+Quality gates: `go vet ./...` · `golangci-lint run` · `go test ./...` · `go build ./cmd/dizgin ./cmd/dizgind`. Once `hooks-install` is run, the `pre-push` hook (`scripts/git-hooks/pre-push` → `scripts/pre-push.{sh,ps1}`) enforces this full set plus `govulncheck` and `make e2e` on every push, not just releases.
 
 Test escape hatches / emergency switches:
 - `DIZGIN_NO_DAEMON_AUTOSTART=1` — skip dizgin's auto-spawn of dizgind.
@@ -141,7 +143,7 @@ On subsequent normal runs (no `--learn`), `dizgin` auto-loads the per-tool YAML 
 
 ## CI/CD
 
-**No CI** — the `.github/workflows/` pipelines (ci/codeql/release) were removed under a no-CI policy. Quality gates run locally before merge: `gofmt`, `go vet`, `golangci-lint` v2 (govet/errcheck/staticcheck/ineffassign/unused + **gosec** + **gocritic**; gosec excludes the syscall-backend-inherent rules — see `.golangci.yml`), `go test -race` (windows/ubuntu/macos), `go build` (5-arch), `govulncheck`. Releases are cut manually via GoReleaser (`.goreleaser.yml`); artifact signing is not configured (see the note in that file).
+**No CI** — the `.github/workflows/` pipelines (ci/codeql/release) were removed under a no-CI policy. Quality gates run locally before merge: `gofmt`, `go vet`, `golangci-lint` v2 (govet/errcheck/staticcheck/ineffassign/unused + **gosec** + **gocritic**; gosec excludes the syscall-backend-inherent rules — see `.golangci.yml`), `go test -race` (windows/ubuntu/macos), `go build` (5-arch), `govulncheck`. Releases are cut manually via `make release` (`scripts/release.sh`, GoReleaser under the hood — `.goreleaser.yml`), which gates dirty-tree state, version resolution (auto-detected from Conventional Commits since the last release tag, or `TAG=vX.Y.Z` to override), the full push-time validation set (exactly once), a 7-day-cadence heavy layer (coverage threshold + cross-platform artifact build), the deploy itself, and a post-deploy verify-live check against the published GitHub release; see CONTRIBUTING.md "Cutting a Release". A gate-free `make release-raw CONFIRM=yes` escape hatch exists for emergencies only. Artifact signing is not configured (see the note in `.goreleaser.yml`).
 
 ## Recently closed issues
 

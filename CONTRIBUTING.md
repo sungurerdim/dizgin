@@ -156,20 +156,28 @@ make test        # go test -race -count=1 -parallel 4 ./...
 make e2e         # integration tests (requires built binaries)
 ```
 
-### Pre-commit hooks
+### Git hooks (pre-commit + pre-push)
 
-The repo ships pre-commit hooks under `scripts/git-hooks/` that run
-`go vet`, `golangci-lint`, and a basic profile-schema sanity pass on
-every commit. Wire them into your local repo with:
+The repo ships two hooks under `scripts/git-hooks/`. Wire them into your
+local repo with:
 
 ```bash
 make hooks-install   # sets core.hooksPath to scripts/git-hooks
 ```
 
-After install, every `git commit` blocks if vet / lint / schema
-sanity fails. Bypass with `git commit --no-verify` only when you
-have a specific reason — opening a draft PR for review is preferred
-over committing known-broken code locally.
+- **pre-commit** (`scripts/pre-commit.sh` / `.ps1`) — fast, runs on every
+  commit: `gofmt -l`, `go vet`, and `golangci-lint run --new-from-rev=HEAD`
+  scoped to the files you staged.
+- **pre-push** (`scripts/pre-push.sh` / `.ps1`) — heavier, runs on every
+  push: `gofmt`, full `go vet` + `golangci-lint run`, `make build`
+  (typecheck), `make test` (race), `make vuln` (govulncheck), and
+  `make e2e`. This is the same gate `make release` relies on to guarantee
+  the full check set runs exactly once per release — see "Cutting a
+  Release" below.
+
+Bypass either with `git commit --no-verify` / `git push --no-verify` only
+when you have a specific reason — opening a draft PR for review is
+preferred over pushing known-broken code.
 
 ### Windows-only tests (no CI to enforce them)
 
@@ -249,52 +257,97 @@ docs/<short-description>
 
 ## Cutting a Release (manual — no CI)
 
-This project follows a no-CI policy; releases are cut manually by a maintainer.
+This project follows a no-CI policy; releases are cut manually by a
+maintainer, via a single gated command.
 
 ### Prerequisites
 
 ```bash
-make tool-install   # installs golangci-lint, govulncheck, goreleaser
+make tool-install     # installs golangci-lint, govulncheck, goreleaser
+make hooks-install     # wires scripts/git-hooks -> core.hooksPath (release
+                       # self-installs this too if it's missing)
+export GITHUB_TOKEN=<token>   # contents:write (+ packages:write for the
+                               # Homebrew/Scoop pushes, if enabled)
 ```
 
-### Pre-release gate
-
-Run all gates locally and confirm they all pass before tagging:
+### Canonical path: `make release`
 
 ```bash
-make fmt            # gofmt -w -s
-make lint           # go vet + golangci-lint
-make test           # go test -race -count=1 -parallel 4 ./...
-make vuln           # govulncheck ./...
-make build          # go build for host platform
-make release-snapshot  # goreleaser --snapshot --clean (dry-run, writes dist/)
+make release                # auto-detects the next version
+make release TAG=v0.2.0     # or pin it explicitly (pre-releases: TAG=v0.2.0-rc1)
 ```
 
-Inspect `dist/` to verify the 5 target archives (windows/amd64, darwin/amd64,
-darwin/arm64, linux/amd64, linux/arm64) and `checksums.txt` are present.
+This is the only command a maintainer runs day-to-day. It is gated end to
+end (`scripts/release.sh`) — any red stage stops everything before
+anything reaches origin or GitHub:
 
-### Tag and release
+1. **Dirty-tree guard** — refuses to run against an unclean working tree;
+   only a committed HEAD is ever released.
+2. **Gate, exactly once** — resolves the version, tags `HEAD`, then either
+   `git push`es the branch + tag together (the `pre-push` hook runs the
+   full lint + build(typecheck) + test + govulncheck(dependency-audit) +
+   e2e set — installed automatically if `make hooks-install` was never
+   run), or, if the branch and tag are already on `origin` (retrying a
+   prior failed attempt), runs that identical gate inline instead, since a
+   no-op push would never fire the hook.
+
+   Without `TAG=`, the version is auto-detected from Conventional Commits
+   since the last pure-semver release tag: any `feat:` → minor bump, any
+   `fix:` → patch bump, any `!` (e.g. `feat(config)!:`) or a
+   `BREAKING CHANGE:` footer → major bump (highest wins). No prior release
+   tag → bootstraps at `v0.1.0`. If every commit since the last tag is
+   `chore:`/`docs:`/`refactor:`/`test:`/`ci:`/`style:`, there is nothing
+   user-facing to release and the command aborts — pass `TAG=` explicitly
+   to force a release anyway. `TAG=` also always wins when given, including
+   for pre-release tags (`-rc1` etc.), which auto-detection never proposes
+   on its own.
+
+   Before a brand-new auto-detected version is ever tagged, `make release`
+   prints the commit list and diffstat since the last release tag and asks
+   for an explicit `yes` — this is the guard against shipping a minor/major
+   release for a change that's technically `feat:`/`fix:` but not actually
+   worth a release (e.g. a trivial two-line tweak); read the summary and
+   decide, rather than trusting a size threshold that would just as easily
+   block a genuinely release-worthy one-line fix. Set `RELEASE_YES=1` to
+   skip the prompt for scripted use; a non-interactive shell without it
+   refuses rather than guessing. Resuming an already-tagged prior attempt
+   never re-prompts.
+3. **Cadence-aware heavy layer** — a gitignored stamp file
+   (`.release-heavy-stamp`) tracks the last run; if it's missing or more
+   than 7 days old, `make release` also runs a coverage-threshold check
+   (>=70%, per the blueprint in `CLAUDE.md`) and a full 5-target
+   cross-platform artifact build (`make release-snapshot`) before
+   deploying, then refreshes the stamp. Fresh stamps skip this so routine
+   releases stay fast.
+4. **Deploy** — `goreleaser release --clean`, publishing to GitHub
+   Releases (and Homebrew/Scoop if their `skip_upload` flags are off).
+5. **Verify-live** — confirms the published tag's remote commit matches
+   local `HEAD` and that the release has the expected assets (5 platform
+   archives + `checksums.txt`) via `gh`. Deploy is not considered done
+   until this is green — a deploy that fails verification is reported as
+   "deployed but not verified", not silently swallowed as success.
+
+Because the pre-push hook now runs the full gate, this cost is paid on
+*every* `git push` once hooks are installed, not just releases — that is
+intentional so a broken commit can never reach `origin`.
+
+### Emergency escape hatch
 
 ```bash
-# 1. Create and push the semver tag (triggers GoReleaser)
-git tag v0.1.0
-git push origin v0.1.0
-
-# 2. Run GoReleaser (requires GITHUB_TOKEN with write:packages + contents scope)
-export GITHUB_TOKEN=<your-token>
-goreleaser release --clean
-
-# 3. Verify the GitHub release at https://github.com/sungurerdim/dizgin/releases
-#    - 5 platform archives + checksums.txt present
-#    - SBOM files (*.sbom.spdx.json) attached
-#    - Changelog auto-populated from conventional commits
+make release-raw CONFIRM=yes TAG=v0.2.0
 ```
+
+Tags, pushes, and runs GoReleaser directly with **no gates at all** — no
+dirty-tree check, no lint/test/vuln/e2e, no coverage or cross-platform
+build, no verify-live. This exists only for a genuine emergency (e.g. the
+gated path itself is broken and a fix must ship now); `CONFIRM=yes` is
+required so it can't be run by muscle memory in place of `make release`.
 
 ### Post-release
 
 - If the Homebrew tap (`dizgin/homebrew-dizgin`) and `HOMEBREW_TAP_TOKEN` are
   provisioned, flip `skip_upload: 'true'` → `skip_upload: 'false'` in
-  `.goreleaser.yml` before running GoReleaser.
+  `.goreleaser.yml` before running `make release`.
 - Same for the Scoop bucket (`dizgin/scoop-dizgin` + `SCOOP_BUCKET_TOKEN`).
 
 ## Reporting Issues

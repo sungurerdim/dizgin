@@ -41,3 +41,8 @@ ds/tune/
 # completed task spec artifacts (dev-rules: deleted at completion, not committed)
 tasks.md
 /schemagen
+
+# make release: weekly cadence stamp for the heavy verification layer, and
+# the coverage HTML report it (and `make cover`) can generate
+/.release-heavy-stamp
+coverage.html

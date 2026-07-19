@@ -1,4 +1,4 @@
-.PHONY: build test lint fmt tidy clean install schema cover check e2e vuln smoke diagnose hooks-install hooks-uninstall release-snapshot tool-install rename
+.PHONY: build test lint fmt tidy clean install schema cover check e2e vuln smoke diagnose hooks-install hooks-uninstall release-snapshot tool-install rename release release-raw
 
 NAME       := dizgin
 DAEMON     := $(NAME)d
@@ -188,3 +188,32 @@ tool-install:
 rename:
 	@test -n "$(NEW)" || { echo "usage: make rename NEW=<newname>"; exit 1; }
 	bash scripts/rename.sh $(NEW)
+
+# Gate'li tek-komut release: dirty-tree guard -> version resolution (TAG=
+# override, or auto-detected from Conventional Commits since the last
+# release tag: feat->minor, fix->patch, !/BREAKING CHANGE->major, no prior
+# tag->v0.1.0) -> full gate (git push, whose pre-push hook runs
+# lint+build+test+vuln+e2e; or that same gate run inline when there's
+# nothing new to push) -> weekly cadence-aware heavy layer (coverage
+# threshold + full cross-platform artifact build, stamp-tracked in
+# .release-heavy-stamp) -> goreleaser deploy -> verify-live against the
+# published GitHub release. Any red stage stops everything before deploy.
+# See scripts/release.sh and CONTRIBUTING.md "Cutting a Release".
+#
+# TAG, not VERSION: this Makefile already defines VERSION (build metadata
+# derived from the git tag at HEAD / dev-<timestamp>, line ~47) — reusing
+# that name here would silently swallow a missing-argument guard instead
+# of failing it, since $(VERSION) would already be non-empty.
+release:
+	bash scripts/release.sh "$(TAG)"
+
+# Emergency escape hatch only — bypasses every gate `make release` runs
+# (dirty-tree guard, lint, build, test, vuln, e2e, coverage threshold,
+# cross-platform artifact build, verify-live). Not the daily path; requires
+# an explicit CONFIRM=yes so it can't be fat-fingered in place of `release`.
+release-raw:
+	@test "$(CONFIRM)" = "yes" || { echo "release-raw: bypasses ALL release gates. Re-run as: make release-raw CONFIRM=yes TAG=vX.Y.Z"; exit 1; }
+	@test -n "$(TAG)" || { echo "usage: make release-raw CONFIRM=yes TAG=vX.Y.Z"; exit 1; }
+	git tag -a "$(TAG)" -m "Release $(TAG) (emergency, gates bypassed)"
+	git push origin "$(TAG)"
+	goreleaser release --clean

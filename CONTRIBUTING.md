@@ -171,6 +171,16 @@ sanity fails. Bypass with `git commit --no-verify` only when you
 have a specific reason — opening a draft PR for review is preferred
 over committing known-broken code locally.
 
+### Windows-only tests (no CI to enforce them)
+
+`internal/sandbox/restricted/` and `internal/diagnostic/wct/` carry
+`//go:build windows` test files (~15 files) that only compile and run
+on a Windows host. Because this project has no CI (see "Cutting a
+Release" below), nothing mechanically blocks a merge that breaks
+them. **Any PR touching either directory must be manually verified
+with `go test ./...` on a real Windows host before merge** — a
+Linux/macOS-only `go test` run silently skips this coverage.
+
 ### Running the e2e suite
 
 `make e2e` runs the integration suite against built binaries. On

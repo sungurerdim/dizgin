@@ -195,6 +195,21 @@ credential:
 
 See [docs/CONFIG.md](docs/CONFIG.md) for the full schema.
 
+### Granting access to a new path
+
+A tool referencing a path outside its mounts prints a hint at session
+end. Run `dizgin add-path <path>...` to add it to that tool's profile
+for next run (`--ro` for read-only, `--tool <name>` to target a
+different profile than `$DIZGIN_TOOL`).
+
+`--suggest` prints a recommended mode per path instead of writing
+anything — heuristic by default, enriched with a single Claude Haiku
+call when `$ANTHROPIC_API_KEY` is set. That call sends each path
+(which may reveal your OS username), its kind, and a few derived
+booleans to `api.anthropic.com` — never file contents. Set
+`DIZGIN_NO_SUGGEST=1` for heuristic-only / air-gapped use, or
+`DIZGIN_SUGGEST_MODEL` to pin a different model.
+
 ## Exit Codes
 
 | Code  | Meaning                        |

@@ -5,7 +5,7 @@ Module: `github.com/sungurerdim/dizgin`
 
 ## Stack
 
-Go 1.25+ · cobra v1.10 · viper v1.21 · creack/pty v1.1 · go-winio v0.6 · golang.org/x/sys v0.43 · Build: GoReleaser v2 · Lint: golangci-lint v2.12 · CI: none (no-CI policy; gates run locally).
+Go 1.25+ · cobra v1.10 · viper v1.21 · creack/pty v1.1 · go-winio v0.6 · golang.org/x/sys v0.44 · Build: GoReleaser v2 · Lint: golangci-lint v2.12 · CI: none (no-CI policy; gates run locally).
 
 (Iter4 retired bubbletea + lipgloss and the charmbracelet x/term /
 cellbuf / displaywidth / uax29 / coninput chain alongside the
@@ -66,10 +66,9 @@ type Box interface {
 JSON over named pipe (Windows: `\\.\pipe\dizgind`) / unix socket (Linux/macOS: `0600` + `SO_PEERCRED`):
 - `register` / `heartbeat` / `deregister` — session lifecycle
 - `command` — daemon → instance (suspend/resume/kill)
-- `launch` / `remote_command` — admin / TUI session control
 - `wfp_apply` / `wfp_revoke` — dizgin → elevated daemon: install / tear down the user-mode WFP network allowlist for a session (dizgin is non-elevated; the daemon holds `FWPM_ACTRL_ADD`)
 
-Iter3 (2026-05-18) removed the `stamp_paths` / `revoke_sid` RPCs. iter6 went one step further: the AppContainer backend was retired entirely (CLAUDE-HANG-01 root cause: ACG ↔ Bun JIT collision), so there is no AC-SID grant work to broker at all. iter7 (this commit) deleted `dizgind setup` because the restricted backend's token preserves `SeChangeNotifyPrivilege` and NTFS traversal works without any volume-root ALL APP PKG grant — no admin-once setup remains; dizgin runs from cold install with zero UAC prompts.
+Iter3 (2026-05-18) removed the `stamp_paths` / `revoke_sid` RPCs. iter6 went one step further: the AppContainer backend was retired entirely (CLAUDE-HANG-01 root cause: ACG ↔ Bun JIT collision), so there is no AC-SID grant work to broker at all. iter7 (this commit) deleted `dizgind setup` because the restricted backend's token preserves `SeChangeNotifyPrivilege` and NTFS traversal works without any volume-root ALL APP PKG grant — no admin-once setup remains; dizgin runs from cold install with zero UAC prompts. (ds-ship pass, 2026-07-19) removed the `launch` / `remote_command` RPCs and the `Launcher` type — dead since the TUI's iter4 removal, zero production callers.
 
 ## Development
 
@@ -155,7 +154,10 @@ On subsequent normal runs (no `--learn`), `dizgin` auto-loads the per-tool YAML 
 ## Blueprint Profile
 
 Type: devtool/CLI | Stack: Go 1.25 (cobra, viper, go-winio, creack/pty, x/sys) | Target: production
+Mission: minimize the risk of running AI coding tools with full host access via real OS-native sandboxing while preserving native tool experience
 Priorities: Security, Code Quality | Constraints: single backend per OS (no fallback), host_path==guest_path, minimize deps
+Red lines: never silently fall back when isolation can't be established (R1), never break native tool experience for sandboxing (R2)
+Integrations: none
 Data: credential surfaces (SSH/AWS/GCP/Azure tokens, DPAPI, browser cookies); no PII collection | Regulations: none
 Audience: developers | Deploy: GitHub Releases (GoReleaser)
 
@@ -166,7 +168,7 @@ External: cobra(CLI); viper(config); go-winio(named pipe); creack/pty(unix pty);
 Toolchain: gofmt, golangci-lint v2 (+gosec+gocritic), go test -race, govulncheck | CI: none (local gates) | Container: none
 Ideal: coupling=low cohesion=high complexity<=15 coverage=70%
 
-Scores: sec=97 quality=90 arch=70 perf=97 resil=90 test=99 stack=94 dx=98 docs=66 overall=89 model=claude-sonnet-5
+Scores: sec=93 quality=88 arch=85 perf=92 resil=92 test=90 stack=85 dx=95 docs=88 overall=90 model=claude-sonnet-5
 
 ## End Blueprint Profile
 

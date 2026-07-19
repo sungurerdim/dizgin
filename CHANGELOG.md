@@ -7,6 +7,30 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Pre-v1.0.0 ship audit (2026-07-19)
+
+Full ds-blueprint/ds-review/ds-benchmark/ds-compliance/ds-test/ds-fix/ds-simplify pass ahead of the first tagged release. No CRITICAL or HIGH findings; details in `ds/audit/report.md`.
+
+**Fixed**
+
+- Path-traversal footgun in per-tool profile/permission YAML paths: `--tool`/`$DIZGIN_TOOL` was joined into a file path without validation. New `internal/security.ValidateToolName` closes it in all 4 call sites (`internal/permissions`, `cmd/dizgin/profile_writer.go`, `internal/sandbox/restricted/permissions_windows.go`).
+- `TypeQueryStatus` was missing from the daemon's peer-uid privileged-type check, contradicting its own doc comment — added (defense-in-depth; the transport ACL already gated it).
+- `add-path --suggest` now discloses at runtime (not just in a code comment) that the path sent to Anthropic's API may reveal your OS username.
+- `golang.org/x/sys` bumped `v0.43.0` → `v0.44.0` (fixes GO-2026-5024; was unexploited per `govulncheck`, now resolved entirely).
+- `internal/monitor/collector_darwin.go`'s process-tree BFS now has a 5s aggregate deadline (was per-call only).
+- Stale `Load()` godoc overstating a CLI-flag-merge layer that doesn't exist; stale `tui.SessionSource` comment left over from the TUI removal.
+
+**Removed**
+
+- The `launch` / `remote_command` daemon IPC RPCs and the `Launcher` type (`internal/daemon/launcher.go`) — dead since the TUI's iter4 removal, zero production callers.
+
+**Added**
+
+- 16 unit tests for previously-uncovered `cmd/dizgin` logic (`parseAddPathFlags`, `buildPathEntries` incl. an R1 regression test, `buildPassthroughEnv`, `isInfoCommand`).
+- `$DIZGIN_SUGGEST_MODEL` env override for the `--suggest` LLM model.
+- `Mission:` / `Red lines:` / `Integrations:` fields on the Blueprint Profile (CLAUDE.md) — it predated ds-blueprint's Foundation pass.
+- A documented pre-merge checklist in CONTRIBUTING.md for the Windows-only `internal/sandbox/restricted` test suite (no CI enforces it).
+
 ### `dizgin-tui` removed (2026-05-29)
 
 The optional `dizgin-tui` dashboard binary and the `charmbracelet/bubbletea` + `lipgloss` dependency chain (`x/term`, `cellbuf`, `displaywidth`, `uax29`, `coninput`, …) are removed again so the base build ships with just `dizgin` + `dizgind` and a minimal dependency tree. The TUI returns as a deferred, optional binary — see [`docs/ROADMAP.md`](docs/ROADMAP.md) "TUI v2".

@@ -15,7 +15,6 @@ graph TB
     subgraph "dizgind (daemon)"
         D[cmd/dizgind] --> SRV[IPC Server]
         D --> REG[Instance Registry]
-        D --> LAUNCH[Session Launcher]
         D --> WFP[WFP network enforcement<br/>wfp_apply / wfp_revoke IPC]
     end
 
@@ -93,13 +92,11 @@ JSON-over-newline (NDJSON) on named pipe (Windows) or unix socket (Unix).
 | `deregister` | wrapper → daemon | Session exit |
 | `command` | daemon → wrapper | Control (suspend/resume/kill) |
 | `query_status` | admin → daemon | Session snapshot request |
-| `launch` | admin → daemon | Spawn new session |
-| `remote_command` | admin → daemon | Control via remote admin client |
 | `shutdown` | admin → daemon | Graceful stop |
 | `wfp_apply` | dizgin → daemon | Install user-mode WFP allowlist filters for a session (dizgin is non-elevated; daemon holds `FWPM_ACTRL_ADD`) |
 | `wfp_revoke` | dizgin → daemon | Tear down WFP filters for a session at cleanup |
 
-iter3 retired the per-session `stamp_paths` / `revoke_sid` RPCs (the old AC-SID grant brokerage). iter6 went further: the AppContainer backend was removed entirely, so there is no AC-SID grant work to broker at all. iter7 deleted `dizgind setup` because the restricted token's preserved `SeChangeNotifyPrivilege` makes the volume-root grant unnecessary; the IPC verb set is now strictly session-lifecycle (`register` / `heartbeat` / `deregister` / `command`) plus admin queries (`query_status` / `launch` / `shutdown`).
+iter3 retired the per-session `stamp_paths` / `revoke_sid` RPCs (the old AC-SID grant brokerage). iter6 went further: the AppContainer backend was removed entirely, so there is no AC-SID grant work to broker at all. iter7 deleted `dizgind setup` because the restricted token's preserved `SeChangeNotifyPrivilege` makes the volume-root grant unnecessary. A later ds-ship audit pass (2026-07-19) removed `launch` / `remote_command` — dead since the TUI's iter4 removal; the IPC verb set is now strictly session-lifecycle (`register` / `heartbeat` / `deregister` / `command`) plus admin queries (`query_status` / `shutdown`).
 
 ## Resource Monitoring
 

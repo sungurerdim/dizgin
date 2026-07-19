@@ -110,7 +110,7 @@ func parseAddPathFlags(args []string) (tool string, readOnly bool, suggest bool,
 				return "", false, false, nil, fmt.Errorf("add-path: --tool requires a tool name")
 			}
 			i++
-			tool = args[i]
+			tool = args[i] //nolint:gosec // G602 false positive: i+1 < len(args) checked above before the increment
 		case strings.HasPrefix(a, "--tool="):
 			tool = a[len("--tool="):]
 		case strings.HasPrefix(a, "-"):

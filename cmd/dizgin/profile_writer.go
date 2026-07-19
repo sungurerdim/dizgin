@@ -13,6 +13,7 @@ import (
 
 	"github.com/sungurerdim/dizgin/internal/brand"
 	"github.com/sungurerdim/dizgin/internal/config"
+	"github.com/sungurerdim/dizgin/internal/security"
 )
 
 // profileDoc is the on-disk YAML shape written by AppendProfileEntries.
@@ -57,6 +58,9 @@ func userProfilesDir() string {
 func AppendProfileEntries(toolName string, entries []config.ConfigDirEntry) (int, error) {
 	if strings.TrimSpace(toolName) == "" {
 		return 0, fmt.Errorf("empty tool name")
+	}
+	if err := security.ValidateToolName(toolName); err != nil {
+		return 0, err
 	}
 	if len(entries) == 0 {
 		return 0, nil
@@ -201,6 +205,9 @@ func maybePersistStarterProfile(toolBin string) {
 // empty doc when the file is absent. Used by tests to verify writer
 // behaviour without re-parsing YAML manually.
 func ReadProfileDoc(toolName string) (profileDoc, error) {
+	if err := security.ValidateToolName(toolName); err != nil {
+		return profileDoc{}, err
+	}
 	target := filepath.Join(userProfilesDir(), strings.ToLower(toolName)+".yaml")
 	data, err := os.ReadFile(target)
 	if err != nil {

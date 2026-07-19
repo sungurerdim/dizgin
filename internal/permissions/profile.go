@@ -21,6 +21,7 @@ import (
 
 	"github.com/sungurerdim/dizgin/internal/brand"
 	"github.com/sungurerdim/dizgin/internal/sandbox"
+	"github.com/sungurerdim/dizgin/internal/security"
 )
 
 // profileFile is the on-disk YAML shape. Only the fields the loader needs
@@ -57,6 +58,9 @@ func path(toolName string) (string, error) {
 	name := strings.ToLower(strings.TrimSpace(toolName))
 	if name == "" {
 		return "", fmt.Errorf("permissions: empty tool name")
+	}
+	if err := security.ValidateToolName(name); err != nil {
+		return "", err
 	}
 	return filepath.Join(dir, name+".yaml"), nil
 }

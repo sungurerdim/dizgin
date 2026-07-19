@@ -15,6 +15,7 @@ import (
 
 	"github.com/sungurerdim/dizgin/internal/brand"
 	"github.com/sungurerdim/dizgin/internal/sandbox"
+	"github.com/sungurerdim/dizgin/internal/security"
 )
 
 // Permission learning persisted state (iter6 Phase D).
@@ -101,6 +102,9 @@ func permissionsPath(toolName string) (string, error) {
 	name := strings.TrimSuffix(strings.ToLower(toolName), ".exe")
 	if name == "" {
 		return "", fmt.Errorf("permissions: empty tool name")
+	}
+	if err := security.ValidateToolName(name); err != nil {
+		return "", err
 	}
 	return filepath.Join(dir, name+".yaml"), nil
 }

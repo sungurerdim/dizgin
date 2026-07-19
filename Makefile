@@ -66,18 +66,25 @@ install: build
 # build now wipes bin/ inline before recompiling, so the install body
 # always sees freshly built binaries. The full install sequence is:
 #  1. build (rm bin/, then dizgin + dizgind)
-#  2. dizgind stop (graceful daemon IPC shutdown)
-#  3. install.ps1 (kills holdout processes + wipes %ProgramData%\dizgin
-#     state through a single elevated subprocess, then copies the
-#     fresh binaries into place)
-#  4. dizgind start (autoSetup + daemon start under one UAC prompt)
-# Graceful IPC shutdown first. dizgind stop sends a Shutdown message through
-# the daemon's named pipe, so the running daemon (which may be elevated) exits
-# itself — that matters because install.ps1's Stop-Process -Force cannot reach
-# an elevated daemon from a non-elevated shell, leaving the old binary running
-# even after install copies a new one. The `-` prefix ignores errors when the
-# daemon is not running (first-time install, already stopped, etc.).
+#  2. dizgind stop (graceful daemon IPC shutdown, if one happens to be
+#     running — harmless either way)
+#  3. install.ps1 on Windows (kills holdout processes + wipes
+#     %ProgramData%\dizgin state through a single elevated subprocess,
+#     then copies the fresh binaries into place) / install.sh's
+#     LOCAL_BINARY mode on macOS+Linux (copies into the first writable
+#     PATH dir, no elevation — see scripts/install.sh)
+#  4. Windows only: dizgind start (autoSetup + daemon start under one
+#     UAC prompt) — the restricted backend needs the elevated daemon
+#     running. macOS/Linux do NOT get this step: ensureDaemonRunning is
+#     a documented no-op there (cmd/dizgin/daemon_check_other.go —
+#     "macOS/Linux sandbox backends don't require a daemon"), and
+#     `dizgind start` itself runs in the foreground with no
+#     self-daemonization on Unix (see docs/TROUBLESHOOTING.md, which
+#     tells users to run it in a separate terminal) — invoking it here
+#     would just hang `make install` forever waiting on a process that
+#     never returns.
 	-$(DAEMON) stop
+ifeq ($(OS),Windows_NT)
 # Single-line powershell invocation — GnuWin32 make under cmd.exe would pass
 # backslash line continuations through literally and break the command line.
 	powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -LocalBinary $(BINDIR)/$(NAME)$(EXE)
@@ -86,9 +93,12 @@ install: build
 # NAT network are all verified inside the same UAC-elevated process that
 # brings the daemon up. Splitting setup and start into separate commands
 # would force two UAC prompts back-to-back. The `-` prefix keeps make
-# install green on non-Windows and on first-time installs where dizgind
-# is not yet on PATH when make invokes it.
+# install green on first-time installs where dizgind is not yet on PATH
+# when make invokes it.
 	-$(DAEMON) start
+else
+	LOCAL_BINARY=$(BINDIR)/$(NAME) bash scripts/install.sh
+endif
 
 test:
 	go test -race -count=1 -parallel 4 ./...

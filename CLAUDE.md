@@ -75,6 +75,7 @@ Iter3 (2026-05-18) removed the `stamp_paths` / `revoke_sid` RPCs. iter6 went one
 
 ```bash
 make build | test | lint | fmt | tidy
+make install        # build + install the current checkout locally (scripts/install.{sh,ps1} LOCAL_BINARY mode)
 make e2e            # integration suite (windows/restricted)
 make hooks-install  # wire scripts/git-hooks → core.hooksPath (pre-commit + pre-push)
 make release              # gated single-command release, version auto-detected (see CONTRIBUTING.md)

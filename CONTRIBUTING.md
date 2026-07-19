@@ -48,6 +48,11 @@ make build
 go build -trimpath -o bin/dizgin.exe ./cmd/dizgin
 go build -trimpath -o bin/dizgind.exe ./cmd/dizgind
 
+# Build + install your current local checkout, replacing whatever
+# dizgin/dizgind are already on PATH — the day-to-day way to try a
+# change for real instead of just running the test suite against it.
+make install
+
 # Run tests
 make test
 # or: go test -race -count=1 ./...
@@ -61,6 +66,32 @@ make fmt
 # Tidy module dependencies
 make tidy
 ```
+
+### `make install`
+
+Builds `dizgin` + `dizgind` from your current checkout, gracefully stops
+any running `dizgind`, then installs the fresh binaries:
+
+- **Windows** — `scripts/install.ps1 -LocalBinary bin/dizgin.exe`: kills
+  holdout processes, wipes `%ProgramData%\dizgin` state through a single
+  elevated subprocess, copies the binaries into place, then also runs
+  `dizgind start` under that same UAC prompt — the restricted backend
+  needs the elevated daemon running.
+- **macOS / Linux** — `scripts/install.sh` in `LOCAL_BINARY` mode: copies
+  into the first writable directory already on `PATH` (preferring an
+  existing `dizgin` install location, then `/usr/local/bin`,
+  `~/.local/bin`, `~/bin`); no elevation needed, and `dizgind` is **not**
+  started — `ensureDaemonRunning` is a documented no-op on non-Windows
+  (`cmd/dizgin/daemon_check_other.go`: "macOS/Linux sandbox backends
+  don't require a daemon"), and `dizgind start` itself blocks in the
+  foreground with no self-daemonization there. Only run it yourself, in
+  its own terminal, if you specifically need the daemon's session
+  management / credential discovery features.
+
+This is distinct from the end-user install one-liners in `README.md` /
+`docs/QUICKSTART.md` (`curl ... install.sh | sh`, `irm ... install.ps1 |
+iex`), which fetch the **latest published GitHub release**, not your
+local build — same underlying scripts, different mode.
 
 ## Project Structure
 

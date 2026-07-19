@@ -226,6 +226,35 @@ func TestIsEnvOverride_DigitOnlyKey(t *testing.T) {
 	}
 }
 
+// ── isInfoCommand ────────────────────────────────────────────────────────────
+
+// TestIsInfoCommand_KnownCommands is a regression test for the daemon
+// autostart gate: every command listed here must NOT trigger dizgind
+// autostart (e.g. `dizgin --version` should never spawn the daemon).
+func TestIsInfoCommand_KnownCommands(t *testing.T) {
+	for _, args := range [][]string{
+		{"-h"}, {"--help"}, {"-v"}, {"--version"},
+		{"version"}, {"completion", "bash"}, {"doctor"},
+		{"add-path", "/tmp/x"}, {"diagnose-hang"}, {"update"},
+	} {
+		if !isInfoCommand(args) {
+			t.Errorf("isInfoCommand(%v) = false, want true", args)
+		}
+	}
+}
+
+func TestIsInfoCommand_ToolInvocationIsNotInfo(t *testing.T) {
+	if isInfoCommand([]string{"claude"}) {
+		t.Error("isInfoCommand([\"claude\"]) = true, want false — a real tool invocation must autostart the daemon")
+	}
+}
+
+func TestIsInfoCommand_EmptyArgs(t *testing.T) {
+	if isInfoCommand(nil) {
+		t.Error("isInfoCommand(nil) = true, want false")
+	}
+}
+
 // ── resolveWorkdir ──────────────────────────────────────────────────────────
 
 func TestResolveWorkdirRelative(t *testing.T) {

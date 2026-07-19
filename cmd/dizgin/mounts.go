@@ -11,6 +11,7 @@ import (
 
 	"github.com/sungurerdim/dizgin/internal/brand"
 	"github.com/sungurerdim/dizgin/internal/config"
+	"github.com/sungurerdim/dizgin/internal/depclosure"
 	"github.com/sungurerdim/dizgin/internal/sandbox"
 	"github.com/sungurerdim/dizgin/internal/security"
 )
@@ -136,7 +137,8 @@ func buildMounts(wd string, def config.ToolDef, toolPath string) []sandbox.Mount
 	addToolchainDepMounts(m, def)
 	addNPMCacheMounts(m, def)
 	addMCPDirMounts(m, def)
-	addHostPathMounts(m)
+	pathDirs := addHostPathMounts(m)
+	addDepClosureMounts(m, toolPath, pathDirs)
 	return m.result()
 }
 
@@ -198,12 +200,19 @@ func addNPMCacheMounts(m *mountAppender, def config.ToolDef) {
 	m.add(npmCache, false, sandbox.CategoryDeclaredRW)
 }
 
-// addToolchainDepMounts mounts ~/.cargo, ~/.rustup, GOPATH etc. — RW
-// because toolchains write to their caches during normal operation
-// (module downloads, build artifacts). R1-B / DeclaredRW.
+// addToolchainDepMounts mounts ~/.cargo, GOPATH, ~/.local/{bin,lib} etc. —
+// RW because toolchains write to their caches during normal operation
+// (module downloads, build artifacts, pip/pipx installs). R1-B / DeclaredRW.
+// A smaller RO set (currently just ~/.rustup) covers toolchain paths that
+// only need reading for normal build/test activity — see
+// DefaultToolchainDepsRO's doc comment for why write isn't granted there
+// by default.
 func addToolchainDepMounts(m *mountAppender, def config.ToolDef) {
 	for _, d := range def.DefaultFilteredToolchainDeps() {
 		m.add(d, false, sandbox.CategoryDeclaredRW)
+	}
+	for _, d := range def.DefaultFilteredToolchainDepsRO() {
+		m.add(d, true, sandbox.CategoryDeclaredRO)
 	}
 	for _, d := range def.ExplicitToolchainDeps() {
 		m.add(d, false, sandbox.CategoryDeclaredRW)
@@ -218,13 +227,15 @@ func addToolchainDepMounts(m *mountAppender, def config.ToolDef) {
 // Entries under OS-managed roots are tagged CategorySystem (inbox AC
 // RX grant covers them); others are CategoryPath (also covered by
 // inbox, but the tag lets the classifier distinguish them in audit
-// logs and a future per-user PATH allowlist).
+// logs and a future per-user PATH allowlist). Returns the list of PATH
+// directories actually mounted so addDepClosureMounts can scan the same
+// set for executables without re-deriving PATH filtering logic.
 //
 // DIZGIN_DISABLE_PATH_MOUNTS=1 disables this expansion entirely — useful
 // for minimal smoke tests that don't want to pay the enumerate cost.
-func addHostPathMounts(m *mountAppender) {
+func addHostPathMounts(m *mountAppender) []string {
 	if os.Getenv(brand.Env("DISABLE_PATH_MOUNTS")) == "1" {
-		return
+		return nil
 	}
 	skipDirs := make(map[string]bool, 4)
 	for _, env := range []string{"TEMP", "TMP", "TMPDIR"} {
@@ -233,6 +244,7 @@ func addHostPathMounts(m *mountAppender) {
 		}
 	}
 
+	var mounted []string
 	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
 		dir = sanitizeMountPath(dir)
 		if dir == "" || !filepath.IsAbs(dir) {
@@ -250,5 +262,35 @@ func addHostPathMounts(m *mountAppender) {
 			cat = sandbox.CategorySystem
 		}
 		m.add(dir, true, cat)
+		mounted = append(mounted, dir)
+	}
+	return mounted
+}
+
+// addDepClosureMounts dynamically resolves the shared-library dependency
+// closure (internal/depclosure) of the tool's own binary plus every
+// executable found in the PATH-mounted directories — the same
+// subprocesses a tool routinely spawns (git, node, python, ...) — and
+// mounts each resolved library as a single read-only file. This is what
+// makes a dynamically linked, non-system-package-manager install (a
+// Homebrew/MacPorts/Nix binary whose shared libraries live in a sibling
+// directory the PATH-bin-dir mount never covers) work without a
+// hand-authored profile entry: dizgin asks the binary what it actually
+// needs instead of guessing a package manager's directory convention.
+//
+// Deliberately file-level, not directory-level: the whole point is
+// least-privilege — granting the exact library a binary links against,
+// never its package's other (unrelated) files. Darwin-only today;
+// internal/depclosure no-ops on every other GOOS (see its package doc).
+func addDepClosureMounts(m *mountAppender, toolPath string, pathDirs []string) {
+	seeds := make([]string, 0, len(pathDirs)*8+1)
+	if toolPath != "" {
+		seeds = append(seeds, toolPath)
+	}
+	for _, dir := range pathDirs {
+		seeds = append(seeds, depclosure.ExecutablesIn(dir)...)
+	}
+	for _, dep := range depclosure.Resolve(seeds) {
+		m.add(dep, true, sandbox.CategoryDepClosure)
 	}
 }

@@ -181,6 +181,14 @@ const (
 	// ProgramData). RO under the user's natural NTFS rights; the
 	// classifier never needs to alter ACLs on these.
 	CategorySystem MountCategory = "system"
+	// CategoryDepClosure is a shared-library file dynamically resolved
+	// from a binary's own load commands (internal/depclosure) rather
+	// than declared by a profile or a static default list. Always a
+	// single file, never a directory — minimal-privilege by
+	// construction, so it ranks below every human-curated category: if
+	// a profile or default also wants the same path mounted, that
+	// explicit declaration wins the dedup merge.
+	CategoryDepClosure MountCategory = "dep_closure"
 )
 
 // Rank returns the strength of c for dedup merges: when two mounts
@@ -199,6 +207,8 @@ func (c MountCategory) Rank() int {
 		return 2
 	case CategorySystem:
 		return 1
+	case CategoryDepClosure:
+		return -1
 	}
 	return 0
 }

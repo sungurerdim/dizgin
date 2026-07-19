@@ -50,4 +50,4 @@ func Env(suffix string) string {
 // ~/.dizgin tree (doctor's health check, the zero-config home-dir
 // bootstrap, and the verbose preflight dump) so the set can't drift
 // between them.
-var StateSubdirs = []string{"profiles", "permissions", "audit"}
+var StateSubdirs = []string{"profiles", "permissions", "audit", "cache"}

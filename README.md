@@ -243,6 +243,8 @@ make fmt     # gofmt -w -s .
 make tidy    # go mod tidy
 ```
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, testing strategy, and PR expectations.
+
 ## Tech Stack
 
 | Component   | Technology                  |

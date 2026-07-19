@@ -105,6 +105,11 @@ security:
 # Resource limits. Set to 0 to disable the limit.
 resources:
   # Maximum resident memory in mebibytes (e.g. 4096 = 4 GB).
+  # Enforced via Job Object on Windows and cgroups on Linux. NOT enforced
+  # on macOS: the kernel rejects setrlimit(RLIMIT_AS, <finite>)
+  # unconditionally (only RLIM_INFINITY is accepted) — the same reason
+  # bash's `ulimit -v` reports "not supported" there. The field is parsed
+  # but has no effect on that backend today.
   memory_mb: 0
 
   # CPU share cap as a percentage (1–100). 0 = unlimited.

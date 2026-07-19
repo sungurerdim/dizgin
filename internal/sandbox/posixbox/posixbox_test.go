@@ -8,20 +8,47 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
+	"path/filepath"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/sungurerdim/dizgin/internal/platform"
 )
 
-// TestMain intercepts a special re-exec of this same test binary and turns
-// it into a long-lived helper process (blocks on stdin, exits 0 when it's
-// closed) instead of running the test suite again. This is the standard
-// os/exec testing idiom for getting a real, controllable child process
-// without depending on any external binary (sleep, cat, ...) being present
-// on the host.
+// TestMain intercepts two special re-execs of this same test binary and
+// turns them into controllable child processes instead of running the test
+// suite again — the standard os/exec testing idiom for getting real child
+// processes without depending on any external binary (sleep, cat, ...)
+// being present on the host.
+//
+//   - POSIXBOX_TEST_SIGTERM_MARKER=<path>: writes <path>.ready as soon as
+//     its SIGTERM handler is installed, blocks until SIGTERM arrives, then
+//     writes <path> and exits. Used as the "grandchild" in
+//     TestStartWithPTY_SignalReachesEntireProcessGroup — checked first so
+//     it works whether or not POSIXBOX_TEST_HELPER is also set (the
+//     grandchild inherits the parent helper's env wholesale).
+//   - POSIXBOX_TEST_HELPER=1: blocks on stdin, exits 0 when it's closed.
+//     If POSIXBOX_TEST_SPAWN_GRANDCHILD=<path> is also set, it first
+//     spawns its own child (re-exec, POSIXBOX_TEST_SIGTERM_MARKER=<path>)
+//     in the same process group before blocking — this is the "middle"
+//     process StartWithPTY starts directly.
 func TestMain(m *testing.M) {
+	if marker := os.Getenv("POSIXBOX_TEST_SIGTERM_MARKER"); marker != "" {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGTERM)
+		_ = os.WriteFile(marker+".ready", []byte("ready"), 0o600)
+		<-sigCh
+		_ = os.WriteFile(marker, []byte("signaled"), 0o600)
+		os.Exit(0)
+	}
 	if os.Getenv("POSIXBOX_TEST_HELPER") == "1" {
+		if marker := os.Getenv("POSIXBOX_TEST_SPAWN_GRANDCHILD"); marker != "" {
+			gc := exec.Command(os.Args[0]) //nolint:gosec // same re-exec idiom as helperCommand
+			gc.Env = append(os.Environ(), "POSIXBOX_TEST_SIGTERM_MARKER="+marker)
+			_ = gc.Start()
+		}
 		_, _ = io.Copy(io.Discard, os.Stdin)
 		os.Exit(0)
 	}
@@ -90,6 +117,63 @@ func TestLifecycle_PidAndSignal_RealProcess(t *testing.T) {
 	if err := l.Signal(os.Interrupt); err == nil {
 		t.Error("Signal() after process exit: want an error, got nil")
 	}
+}
+
+// TestStartWithPTY_SignalReachesEntireProcessGroup pins the fix for a real
+// bug: Lifecycle.Signal used to call cmd.Process.Signal, which only ever
+// reaches the direct child — a subprocess the sandboxed tool spawns (an
+// MCP server, git, node) kept running as an orphan after dizgin forwarded
+// SIGTERM/SIGINT, unlike a native shell's job control, where a signal to
+// the foreground process group reaches every process in it. Since
+// StartWithPTY always sets Setsid, the child is its own process-group
+// leader (pgid == pid); Signal() must target -pid, not pid, whenever a PTY
+// session is active.
+func TestStartWithPTY_SignalReachesEntireProcessGroup(t *testing.T) {
+	dir := t.TempDir()
+	marker := filepath.Join(dir, "grandchild-signaled")
+	ready := marker + ".ready"
+
+	cmd := helperCommand(t)
+	cmd.Env = append(cmd.Env, "POSIXBOX_TEST_SPAWN_GRANDCHILD="+marker)
+
+	sess, err := StartWithPTY(cmd)
+	if err != nil {
+		t.Fatalf("StartWithPTY: %v", err)
+	}
+	defer sess.Close()
+	l := &Lifecycle{Cmd: cmd, Session: sess}
+
+	// Wait for the grandchild to confirm its SIGTERM handler is installed
+	// before signaling — proves the handler was live, not a race won by
+	// sheer luck.
+	waitForFile(t, ready, 2*time.Second)
+
+	if err := l.Signal(syscall.SIGTERM); err != nil {
+		t.Fatalf("Signal: %v", err)
+	}
+
+	// The test never held a direct reference to the grandchild's pid —
+	// only Lifecycle, which only knows the middle process, does. The
+	// marker file appearing proves Signal() reached the grandchild too,
+	// i.e. the whole process group, not just the direct child.
+	waitForFile(t, marker, 2*time.Second)
+
+	_ = cmd.Process.Kill()
+	_ = cmd.Wait()
+}
+
+// waitForFile polls for path to exist, failing the test if it doesn't
+// appear within timeout.
+func waitForFile(t *testing.T, path string, timeout time.Duration) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if _, err := os.Stat(path); err == nil {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for %s", path)
 }
 
 func TestStartWithPTY_AllocatesReadWriteCloser(t *testing.T) {

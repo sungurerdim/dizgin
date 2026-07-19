@@ -118,11 +118,27 @@ func (l *Lifecycle) Wait() (int, error) {
 
 // Signal forwards sig to the running child, or no-ops if it never started
 // or has already exited.
+//
+// When the child was started via StartWithPTY (Session != nil), Setsid put
+// it in its own new session/process group with pgid == pid, so the signal
+// targets the whole group (syscall.Kill with a negative pid) rather than
+// just the direct child. Without this, forwarding e.g. SIGTERM only ever
+// reached the sandboxed tool's top-level process — any subprocess it
+// spawned (an MCP server, a git/node child) kept running as an orphan,
+// unlike native shell job control, where a signal to a foreground process
+// group reaches every process in it. The plain (--no-pty) path never sets
+// Setsid, so Session is nil there and this keeps signaling the single
+// process as before.
 func (l *Lifecycle) Signal(sig os.Signal) error {
 	l.Mu.Lock()
 	defer l.Mu.Unlock()
 	if l.Cmd == nil || l.Cmd.Process == nil {
 		return nil
+	}
+	if l.Session != nil {
+		if sysSig, ok := sig.(syscall.Signal); ok {
+			return syscall.Kill(-l.Cmd.Process.Pid, sysSig)
+		}
 	}
 	return l.Cmd.Process.Signal(sig)
 }

@@ -9,44 +9,25 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/sungurerdim/dizgin/internal/platform"
 	"golang.org/x/sys/unix"
 )
 
 // isTerminal reports whether f is a Unix terminal.
 func isTerminal(f *os.File) bool {
-	_, err := unix.IoctlGetTermios(int(f.Fd()), ioctlReadTermios)
-	return err == nil
+	return platform.IsTerminal(f)
 }
 
 // makeRaw puts the terminal in raw mode and returns a restore function.
 // The `out` parameter is accepted for signature parity with the Windows
 // implementation (which flips the output handle's ENABLE_VIRTUAL_TERMINAL
 // mode) but is not needed on POSIX — the tty is a single fd.
+//
+// Delegates to platform.SetRaw, which internal/sandbox/posixbox also uses
+// to raw-mode the *inner* PTY the sandboxed tool runs under — see that
+// function's doc comment for why both sides of the bridge need this.
 func makeRaw(in, _ *os.File) (restore func(), err error) {
-	fd := int(in.Fd())
-	termios, err := unix.IoctlGetTermios(fd, ioctlReadTermios)
-	if err != nil {
-		return nil, err
-	}
-	orig := *termios
-
-	// Set raw mode (equivalent to cfmakeraw — portable across Linux and Darwin).
-	raw := orig
-	raw.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
-	raw.Oflag &^= unix.OPOST
-	raw.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
-	raw.Cflag &^= unix.CSIZE | unix.PARENB
-	raw.Cflag |= unix.CS8
-	raw.Cc[unix.VMIN] = 1
-	raw.Cc[unix.VTIME] = 0
-
-	if err = unix.IoctlSetTermios(fd, ioctlWriteTermios, &raw); err != nil {
-		return nil, err
-	}
-	restore = func() {
-		unix.IoctlSetTermios(fd, ioctlWriteTermios, &orig) //nolint:errcheck
-	}
-	return restore, nil
+	return platform.SetRaw(in)
 }
 
 // currentTerminalSize returns the current host terminal dimensions.

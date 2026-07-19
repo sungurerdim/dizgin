@@ -16,8 +16,11 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"syscall"
 
 	"github.com/creack/pty"
+
+	"github.com/sungurerdim/dizgin/internal/platform"
 )
 
 // PTYSession holds the host-side PTY file for a sandboxed process.
@@ -27,11 +30,52 @@ type PTYSession struct {
 
 // StartWithPTY starts cmd under a PTY and returns the host-side PTY file.
 // The caller is responsible for closing the returned session.
+//
+// Unlike pty.Start(cmd), this puts the *slave* side in raw mode itself
+// before the child ever runs, rather than trusting the sandboxed tool's own
+// runtime to flip it in time. A freshly opened pty slave starts in the
+// kernel's default cooked mode (ICANON+ECHO on); anything written into it
+// during the window before the tool's TUI framework sets raw mode itself —
+// including terminal capability query/responses dizgin transparently
+// relays between the real host terminal and this pty (see cmd/dizgin's
+// bridgePTY) — gets echoed straight back out by the line discipline
+// instead of consumed as input. That produces garbled on-screen text and,
+// because canonical mode line-buffers input until a newline, swallows
+// single keypresses (e.g. a bare "1"/"2" at a y/n-style prompt) entirely.
+// See platform.SetRaw's doc comment for the other half of this pairing.
 func StartWithPTY(cmd *exec.Cmd) (*PTYSession, error) {
-	ptmx, err := pty.Start(cmd)
+	ptmx, tty, err := pty.Open()
 	if err != nil {
 		return nil, err
 	}
+	// Best-effort, matching how cmd/dizgin's own makeRaw call on the outer
+	// terminal is already treated: proceed even on failure rather than
+	// abort session startup over a raw-mode priming ioctl. The sandboxed
+	// tool's own runtime remains the fallback, exactly as before this fix.
+	_, _ = platform.SetRaw(tty)
+
+	if cmd.Stdin == nil {
+		cmd.Stdin = tty
+	}
+	if cmd.Stdout == nil {
+		cmd.Stdout = tty
+	}
+	if cmd.Stderr == nil {
+		cmd.Stderr = tty
+	}
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Setsid = true
+	cmd.SysProcAttr.Setctty = true
+
+	if err := cmd.Start(); err != nil {
+		tty.Close()  //nolint:errcheck
+		ptmx.Close() //nolint:errcheck
+		return nil, err
+	}
+	tty.Close() //nolint:errcheck // parent no longer needs the slave
+
 	return &PTYSession{ptmx: ptmx}, nil
 }
 

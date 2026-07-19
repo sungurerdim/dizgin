@@ -2,7 +2,7 @@
 
 //go:build linux
 
-package main
+package platform
 
 import "golang.org/x/sys/unix"
 

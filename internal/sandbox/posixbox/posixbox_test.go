@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"syscall"
 	"testing"
+
+	"github.com/sungurerdim/dizgin/internal/platform"
 )
 
 // TestMain intercepts a special re-exec of this same test binary and turns
@@ -106,6 +108,39 @@ func TestStartWithPTY_AllocatesReadWriteCloser(t *testing.T) {
 		t.Fatalf("Kill: %v", err)
 	}
 	_ = cmd.Wait()
+}
+
+// TestStartWithPTY_InnerPTYIsRawBeforeChildRuns pins the fix for a real
+// bug: pty.Start(cmd) alone leaves the slave in the kernel's default
+// cooked mode (ICANON+ECHO on) until the child's own runtime flips it,
+// which is a race the child can lose — e.g. a TUI's startup work delaying
+// its raw-mode call, or a terminal capability query/response dizgin
+// relays arriving during that window. Cooked mode then echoes bytes
+// written into the pty straight back out (visible as garbled on-screen
+// text) and line-buffers input until a newline (swallowing single
+// keypresses like a bare "1"/"2" at a y/n prompt). StartWithPTY must set
+// raw mode itself, synchronously, before cmd.Start() — this test asserts
+// that invariant holds the instant StartWithPTY returns, with no window
+// at all where the child could observe cooked mode.
+func TestStartWithPTY_InnerPTYIsRawBeforeChildRuns(t *testing.T) {
+	cmd := helperCommand(t)
+	sess, err := StartWithPTY(cmd)
+	if err != nil {
+		t.Fatalf("StartWithPTY: %v", err)
+	}
+	defer sess.Close()
+	defer func() {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+	}()
+
+	raw, err := platform.IsRaw(sess.ptmx)
+	if err != nil {
+		t.Fatalf("IsRaw: %v", err)
+	}
+	if !raw {
+		t.Error("inner PTY is not in raw mode immediately after StartWithPTY returns — ICANON/ECHO should already be off, not left for the sandboxed tool's own runtime to disable")
+	}
 }
 
 func TestLifecycle_PTY_ReturnsSessionRWC(t *testing.T) {

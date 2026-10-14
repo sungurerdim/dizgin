@@ -1,17 +1,17 @@
 module github.com/sungurerdim/dizgin
 
-go 1.25.8
+go 1.26.0
 
 toolchain go1.26.5
 
 require (
-	github.com/Microsoft/go-winio v0.6.2
+	github.com/Microsoft/go-winio v0.6.3
 	github.com/creack/pty v1.1.24
 	github.com/invopop/jsonschema v0.14.0
-	github.com/mattn/go-isatty v0.0.22
+	github.com/mattn/go-isatty v0.0.24
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	golang.org/x/sys v0.44.0
+	golang.org/x/sys v0.48.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
